@@ -27,10 +27,22 @@ class Discord:
     # 通知
     #   param:
     #       message: 通知メッセージ
+    #       fileName: 画像ファイル
     # ======================================
-    def send(self, message):
+    def send(self, message, fileName=None):
         if '' != self._discord_webhook_url:
-            requests.post(self._discord_webhook_url, data={"content": " " + message + " "})
+            data = {"content": " " + message + " "}
+            if fileName == None:
+                r = requests.post(self._discord_webhook_url, data=data)
+            else:
+                try:
+                    file = {"imageFile": open(fileName, "rb")}
+                    r = requests.post(self._discord_webhook_url, data=data, files = file)
+                except:
+                    r = requests.post(self._discord_webhook_url, data=data)
+            if r.status_code == 404:
+                raise RuntimeError("指定URL[{}]は存在しません".format(self._discord_webhook_url))
+
 
 """
 例：
