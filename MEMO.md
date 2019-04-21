@@ -342,3 +342,66 @@
   }
 ]
 ```
+
+### 0.5刻みでpriceを丸める方法
+
+```
+#!/usr/bin/python3
+
+# 参考にしたサイト
+#  https://qiita.com/sak_2/items/b2dd8bd1c4e4b0788e9a
+#  https://note.nkmk.me/python-round-decimal-quantize/
+
+import math
+
+UNIT = 0.5
+
+# python2系と同じroundとするとこうなる。
+__round=lambda x:(x*2+1)//2
+
+# =============================
+# 一番近い0.5刻みの値でUPする
+# =============================
+def fix_up_unit(price):
+    _diff = price - math.floor(price)
+    # 小数点以下が0 または、0.5
+    if _diff == 0 or _diff == UNIT:
+        return price
+    # 小数点以下が0.5より大きい
+    elif _diff > UNIT:
+        return math.floor(price) + UNIT * 2
+    # 小数点以下が0.5より小さい
+    elif _diff < UNIT:
+        return math.floor(price) + UNIT
+
+# =============================
+# 一番近い0.5刻みの値でDOWNする
+# =============================
+def fix_down_unit(price):
+    _diff = price - math.floor(price)
+    # 小数点以下が0 または、0.5
+    if _diff == 0 or _diff == UNIT:
+        return price
+    # 小数点以下が0.5より大きい
+    elif _diff > UNIT:
+        return math.floor(price) + UNIT
+    # 小数点以下が0.5より小さい
+    elif _diff < UNIT:
+        return math.floor(price)
+
+#------------------------------
+print(fix_up_unit(1.2))
+print(fix_up_unit(1.5))
+print(fix_up_unit(1.51))
+print(fix_up_unit(1.7))
+print(fix_up_unit(2.0))
+print(fix_up_unit(2.01))
+
+#------------------------------
+print(fix_down_unit(1.2))
+print(fix_down_unit(1.5))
+print(fix_down_unit(1.49))
+print(fix_down_unit(1.7))
+print(fix_down_unit(2.0))
+print(fix_down_unit(1.99))
+```
