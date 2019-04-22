@@ -405,3 +405,44 @@ print(fix_down_unit(1.7))
 print(fix_down_unit(2.0))
 print(fix_down_unit(1.99))
 ```
+
+### もっと簡単な0.5切り上げ・切り下げ
+
+参考にしたサイト
+　https://teratail.com/questions/176744
+
+```
+import math
+
+# 0.5刻みで切り捨て
+def _floor(x):
+    return math.floor(x*2)/2
+
+# 0.5刻みで切り上げ
+def _ceil(x):
+    return math.ceil(x*2)/2
+
+# 切り下げ
+print('----------')
+print(_floor(1.0))
+print(_floor(1.1))
+print(_floor(1.5))
+print(_floor(1.7))
+print(_floor(2.0))
+print(_floor(2.2))
+print(_floor(2.5))
+print(_floor(2.7))
+print(_floor(3.0))
+
+# 切り上げ
+print('----------')
+print(_ceil(1.0))
+print(_ceil(1.1))
+print(_ceil(1.5))
+print(_ceil(1.7))
+print(_ceil(2.0))
+print(_ceil(2.2))
+print(_ceil(2.5))
+print(_ceil(2.7))
+print(_ceil(3.0))
+```
