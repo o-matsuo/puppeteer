@@ -1,0 +1,60 @@
+{
+    "//" : "===============================================",
+    "//" : " システムで利用",
+    "//" : "===============================================",
+    "//" : "取引所のapiKey, secretを設定します",
+    "APIKEY" : "YOUR_APIKEY",
+    "SECRET" : "YOUR_SECRET",
+
+    "//" : "bitmex取引所で対応する通貨ペア等を記述",
+    "SYMBOL" : "BTC/USD",
+    "INFO_SYMBOL" : "XBTUSD",
+    "COIN_BASE" : "BTC",
+    "COIN_QUOTE" : "USD",
+    "//" : "bitmex取引所の価格の最小幅(0.5ドル)",
+    "PRICE_UNIT" : 0.5,
+
+    "//" : "TestNetを使うか？(使う: true, 使わない: false)",
+    "USE_TESTNET" : true,
+
+    "//" : "ticker, orderbook, position, balance, candle のどれを利用するかを指定する。Falseを指定した場合はそのデータは取得しない",
+    "USE" : {
+        "TICKER" : false,
+        "ORDERBOOK" : false,
+        "POSITION" : false,
+        "BALANCE" : false,
+        "CANDLE" : false
+    },
+
+    "//" : "ローソク足の収集定義。",
+    "CANDLE" : {
+        "//" : "ローソク足の足幅を設定する。設定値= 1m, 5m, 1h, 1d",
+        "TIMEFRAME" : "1m",
+        "//" : "データ取得開始時刻(UNIXTIME：1ミリ秒)、使用しない場合 もしくは自動の場合は null(None) を指定",
+        "SINCE" : null,
+        "//" : "取得件数(未指定:100、MAX:500)",
+        "LIMIT" : null,
+        "//" : "True(New->Old)、False(Old->New)　未指定時はFlase",
+        "REVERSE" : false,
+        "//" : "True(最新の未確定足を含む)、False(含まない)　未指定はTrue",
+        "PARTIAL" : false
+    },
+
+    "//" : "板情報の収集定義。",
+    "ORDERBOOK" : {
+        "//" : "取得件数(未指定:25、MAX:取引所による？)",
+        "LIMIT" : null
+    },
+
+    "//" : "インターバル（botの実行周期）を秒で設定",
+    "INTERVAL" :5,
+
+    "//" : "discord通知用URL",
+    "DISCORD_WEBHOOK_URL" : "",
+
+    "//" : "===============================================",
+    "//" : " ユーザで自由に定義",
+    "//" : "===============================================",
+    "//" : "売買するサイズ",
+    "LOT_SIZE" :50
+}

@@ -16,6 +16,10 @@ from os.path import splitext, basename
 # fetch_ohlcv改良
 from datetime import datetime
 import calendar
+# bitmexラッパー
+from exchanges.ccxt.bitmex import BitMEX
+# websocket
+from exchanges.websocket.inmemorydb_bitmex_websocket import BitMEXWebsocket
 
 # ==========================================
 # Puppeteer モジュール
@@ -36,6 +40,8 @@ class Puppeteer:
     _config = None              # 定義情報(JSON)
     _logger = None              # logger設定
     _discord = None             # discordオブジェクト
+    _bitmex = None              # ccxt.bitmexラッパー
+    _ws = None                  # websocket
 
     # ======================================
     # 初期化
@@ -51,7 +57,7 @@ class Puppeteer:
         # loggerオブジェクトの宣言
         logger = getLogger("puppeteer")
         # loggerのログレベル設定(ハンドラに渡すエラーメッセージのレベル)
-        logger.setLevel(logging.DEBUG)              # ※ここはConfigで設定可能にする
+        logger.setLevel(logging.INFO)              # ※ここはConfigで設定可能にする
         # Formatterの生成
         formatter = Formatter(
                 fmt='%(asctime)s, %(levelname)-8s, %(message)s',
@@ -85,14 +91,33 @@ class Puppeteer:
             jsonData = json.load(f)
             # print(json.dumps(jsonData, sort_keys = True, indent = 4))
             self._config = jsonData
-            # 取引所オブジェクト(ccxt.bitmex)
-            self._exchange = ccxt.bitmex({
-                'apiKey': jsonData['APIKEY'],
-                'secret': jsonData['SECRET']
-            })
-            if jsonData['USE_TESTNET'] == True:
-                # for TESTNET
-                self._exchange.urls['api'] = self._exchange.urls['test'] 
+        # ------------------------------
+        # bitmexラッパー
+        # ------------------------------
+        self._bitmex = BitMEX(
+            symbol=self._config['SYMBOL'],          # BTC/USD   注意：XBTUSDではない 
+            apiKey=self._config['APIKEY'],
+            secret=self._config['SECRET'],
+            logger=self._logger,
+            use_testnet=self._config['USE_TESTNET']
+        )
+        # ------------------------------
+        # 取引所オブジェクト(ccxt.bitmex)
+        # ------------------------------
+        self._exchange = self._bitmex._exchange
+        # ----------------------------------
+        # websocket
+        # ----------------------------------
+        self._ws = BitMEXWebsocket(
+                endpoint='wss://www.bitmex.com/realtime' if self._config['USE_TESTNET'] is False else 'wss://testnet.bitmex.com/realtime', 
+                symbol=self._config['INFO_SYMBOL'],     # XBTUSD
+                api_key=self._config['APIKEY'], 
+                api_secret=self._config['SECRET'],
+                logger=self._logger,
+                use_timemark=False
+            )
+        # instrumentメソッドを一度呼び出さないとエラーを吐くので追加(内部的にtickerがこの情報を使用するため)
+        self._ws.instrument()
         # ----------------------------------
         # Discord生成
         # ----------------------------------
