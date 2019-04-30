@@ -91,6 +91,17 @@ class Puppeteer:
             jsonData = json.load(f)
             # print(json.dumps(jsonData, sort_keys = True, indent = 4))
             self._config = jsonData
+        # ----------------------------------
+        # ログレベルの設定（デフォルトはINFO）
+        # ----------------------------------
+        if 'LOG_LEVEL' in self._config:
+            if self._config['LOG_LEVEL'] in ['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG']:
+                self._logger.setLevel(eval('logging.' + self._config['LOG_LEVEL']))
+        # ------------------------------
+        # websocketを使うか
+        # ------------------------------
+        if 'USE_WEBSOCKET' not in self._config:
+            self._config['USE_WEBSOCKET'] = False
         # ------------------------------
         # bitmexラッパー
         # ------------------------------
@@ -115,9 +126,10 @@ class Puppeteer:
                 api_secret=self._config['SECRET'],
                 logger=self._logger,
                 use_timemark=False
-            )
+            ) if self._config['USE_WEBSOCKET'] == True else None
         # instrumentメソッドを一度呼び出さないとエラーを吐くので追加(内部的にtickerがこの情報を使用するため)
-        self._ws.instrument()
+        if self._config['USE_WEBSOCKET'] == True:
+            self._ws.instrument()
         # ----------------------------------
         # Discord生成
         # ----------------------------------

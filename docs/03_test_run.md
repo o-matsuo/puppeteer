@@ -155,6 +155,12 @@ ma.json
         "LIMIT" : null
     },
 
+    "//" : "websocketを使用するかどうかを指定",
+    "USE_WEBSOCKET" : false,
+
+    "//" : "ログレベルを指定。（'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'）",
+    "LOG_LEVEL" : "INFO",
+
     "//" : "インターバルを秒で設定",
     "INTERVAL" : 30,
 

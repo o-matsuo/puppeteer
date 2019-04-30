@@ -164,6 +164,10 @@ Puppetはクラス生成時に、引数としてPuppeteer本体オブジェク�
 
   - ORDERBOOK : 板情報を取得する設定です。
 
+  - USE_WEBSOCKET : websocketを使用するかどうかを設定します。
+
+  - LOG_LEVEL : 'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'
+
   - INTERVAL : botの実行周期を秒で設定します。
 
   - DISCORD_WEBHOOK_URL : discord通知を使用するときに、discordのwebhook urlを設定します。
