@@ -44,7 +44,7 @@ from exchanges.websocket.order import Order
 class BitMEXWebsocket:
 
     # Don't grow a table larger than this amount. Helps cap memory usage.
-    MAX_TABLE_LEN = 200
+    MAX_TABLE_LEN = 1000
     # order bookの最大保持数
     MAX_ORDERBOOK_LEN = 100
 
@@ -630,8 +630,8 @@ class BitMEXWebsocket:
                     elif table in ['execution', 'trade', 'quote']:
                         # 配列 [] で登録(partial)・挿入(insert)
                         self.data[table] += message['data']
-                        if len(self.data[table]) > BitMEXWebsocket.MAX_TABLE_LEN:
-                            self.data[table] = self.data[table][int(BitMEXWebsocket.MAX_TABLE_LEN / 2):]
+                        if len(self.data[table]) > (BitMEXWebsocket.MAX_TABLE_LEN * 1.5):
+                            self.data[table] = self.data[table][-BitMEXWebsocket.MAX_TABLE_LEN:]
                     elif table in ['instrument', 'margin', 'position']:
                         # dataは来ないはず
                         self.logger.error('insert event occured table: {}'.format(table))
