@@ -12,9 +12,6 @@ from puppeteer import Puppeteer
 #       puppeteer: Puppeteerオブジェクト
 # ==========================================
 class Puppet(Puppeteer):
-    _exchange = None    # 取引所オブジェクト(ccxt.bitmex)
-    _logger = None      # logger
-    _config = None      # 定義ファイル
 
     # ==========================================================
     # 初期化
@@ -22,9 +19,9 @@ class Puppet(Puppeteer):
     #       puppeteer: Puppeteerオブジェクト
     # ==========================================================
     def __init__(self, Puppeteer):
-        self._exchange = Puppeteer._exchange
-        self._logger = Puppeteer._logger
-        self._config = Puppeteer._config
+        self._exchange = Puppeteer._exchange    # 取引所オブジェクト(ccxt.bitmex)
+        self._logger = Puppeteer._logger        # logger
+        self._config = Puppeteer._config        # 定義ファイル
         
     # ==========================================================
     # 売買実行
