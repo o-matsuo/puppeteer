@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # 参考
 #  https://www.htmllifehack.xyz/entry/2018/08/03/231351
 
@@ -25,8 +23,6 @@ class Order:
 
     __TABLE_NAME = 'ORDER_TBL'      # 注文情報
 
-    _con = None                 # DB connection
-
     #==================================
     # 初期化
     #==================================
@@ -34,12 +30,12 @@ class Order:
 
         self.logger = logger if logger is not None else logging.getLogger(__name__)
 
-        self._con = Connection
+        self._con = Connection  # DB connection
 
         c = self._con.cursor()
         self.beginTrans(c)
         try:
-            c.execute('CREATE TABLE IF NOT EXISTS ' + self.__TABLE_NAME + ' ( ' + self.__COLUMN_SETS + ' ) ')
+            c.execute('CREATE TABLE IF NOT EXISTS ' + Order.__TABLE_NAME + ' ( ' + Order.__COLUMN_SETS + ' ) ')
         except Exception as e:
             self.logger.error(e)
             self.rollback(c)
@@ -65,7 +61,7 @@ class Order:
                         int(datetime.utcnow().timestamp())
                     ]))
             #                                                   params: list [(orderID, obj, tm), (...)]
-            c.executemany('REPLACE INTO ' + self.__TABLE_NAME + ' VALUES (?,?,?)', list)
+            c.executemany('REPLACE INTO ' + Order.__TABLE_NAME + ' VALUES (?,?,?)', list)
         except Exception as e:
             self.logger.error(e)
             self.rollback(c)
@@ -88,7 +84,7 @@ class Order:
                         row['orderID']
                     ]))
             #                                                   params: list [(orderID), (...)]
-            c.executemany('DELETE FROM ' + self.__TABLE_NAME + ' WHERE orderID = ?', list)
+            c.executemany('DELETE FROM ' + Order.__TABLE_NAME + ' WHERE orderID = ?', list)
         except Exception as e:
             self.logger.error(e)
             self.rollback(c)
@@ -110,7 +106,7 @@ class Order:
         self.beginTrans(c)
         try:
             #                  0,     1,    2
-            c.execute('SELECT orderID, obj, tm FROM ' + self.__TABLE_NAME + ' WHERE orderID = ?', (orderID,) )
+            c.execute('SELECT orderID, obj, tm FROM ' + Order.__TABLE_NAME + ' WHERE orderID = ?', (orderID,) )
             list = c.fetchall()
             for row in list:
                 data.append(
@@ -136,7 +132,7 @@ class Order:
         self.beginTrans(c)
         try:
             #                  0,     1,    2
-            c.execute('SELECT orderID, obj, tm FROM ' + self.__TABLE_NAME)
+            c.execute('SELECT orderID, obj, tm FROM ' + Order.__TABLE_NAME)
             list = c.fetchall()
             for row in list:
                 data.append(
@@ -159,7 +155,7 @@ class Order:
         c = self._con.cursor()
         self.beginTrans(c)
         try:
-            c.execute('DELETE FROM ' + self.__TABLE_NAME)
+            c.execute('DELETE FROM ' + Order.__TABLE_NAME)
         except Exception as e:
             self.logger.error(e)
             self.rollback(c)

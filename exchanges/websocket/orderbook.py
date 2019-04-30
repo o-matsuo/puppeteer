@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 # 参考
 #  https://www.htmllifehack.xyz/entry/2018/08/03/231351
 
@@ -31,8 +29,6 @@ class OrderBook:
 
     __TABLE_NAME = 'ORDERBOOK_TBL'    # 板情報
 
-    _con = None                 # DB connection
-
     #==================================
     # 初期化
     #==================================
@@ -40,12 +36,12 @@ class OrderBook:
 
         self.logger = logger if logger is not None else logging.getLogger(__name__)
 
-        self._con = Connection
+        self._con = Connection  # DB connection
 
         c = self._con.cursor()
         self.beginTrans(c)
         try:
-            c.execute('CREATE TABLE IF NOT EXISTS ' + self.__TABLE_NAME + ' ( ' + self.__COLUMN_SETS + ' ) ')
+            c.execute('CREATE TABLE IF NOT EXISTS ' + OrderBook.__TABLE_NAME + ' ( ' + OrderBook.__COLUMN_SETS + ' ) ')
         except Exception as e:
             self.logger.error(e)
             self.rollback(c)
@@ -74,7 +70,7 @@ class OrderBook:
                         int(datetime.utcnow().timestamp())
                     ]))
             #                                                   params: list [(id, price, size, side, symbol, tm), (...)]
-            c.executemany('REPLACE INTO ' + self.__TABLE_NAME + ' VALUES (?,?,?,?,?,?)', list)
+            c.executemany('REPLACE INTO ' + OrderBook.__TABLE_NAME + ' VALUES (?,?,?,?,?,?)', list)
         except Exception as e:
             self.logger.error(e)
             self.rollback(c)
@@ -100,7 +96,7 @@ class OrderBook:
                         row['id']
                     ]))
             #                                                   params: list [(size, side, tm, id), (...)]
-            c.executemany('UPDATE ' + self.__TABLE_NAME + ' SET size = ?, side = ?, tm = ? WHERE id = ?', list)
+            c.executemany('UPDATE ' + OrderBook.__TABLE_NAME + ' SET size = ?, side = ?, tm = ? WHERE id = ?', list)
         except Exception as e:
             self.logger.error(e)
             self.rollback(c)
@@ -126,7 +122,7 @@ class OrderBook:
                         row['id']
                     ]))
             #                                                   params: list [(0, side, tm, id), (...)]
-            c.executemany('UPDATE ' + self.__TABLE_NAME + ' SET size = ?, side = ?, tm = ? WHERE id = ?', list)
+            c.executemany('UPDATE ' + OrderBook.__TABLE_NAME + ' SET size = ?, side = ?, tm = ? WHERE id = ?', list)
         except Exception as e:
             self.logger.error(e)
             self.rollback(c)
@@ -150,7 +146,7 @@ class OrderBook:
         self.beginTrans(c)
         try:
             #                  0,     1,    2,    3,      4,  5
-            c.execute('SELECT id, price, size, side, symbol, tm FROM ' + self.__TABLE_NAME + ' WHERE ( side == "' + side + '" AND size != 0 ) ORDER BY id ' + direction + ' LIMIT ' + str(num) )
+            c.execute('SELECT id, price, size, side, symbol, tm FROM ' + OrderBook.__TABLE_NAME + ' WHERE ( side == "' + side + '" AND size != 0 ) ORDER BY id ' + direction + ' LIMIT ' + str(num) )
             list = c.fetchall()
             for row in list:
                 data.append({
@@ -177,7 +173,7 @@ class OrderBook:
         c = self._con.cursor()
         self.beginTrans(c)
         try:
-            c.execute('UPDATE ' + self.__TABLE_NAME + ' SET size = ? , tm = ?', (0, int(datetime.utcnow().timestamp())))
+            c.execute('UPDATE ' + OrderBook.__TABLE_NAME + ' SET size = ? , tm = ?', (0, int(datetime.utcnow().timestamp())))
         except Exception as e:
             self.logger.error(e)
             self.rollback(c)
