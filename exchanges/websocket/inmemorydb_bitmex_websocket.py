@@ -52,7 +52,7 @@ class BitMEXWebsocket:
     MAX_ORDERBOOK_LEN = 100
     # ローソク足の刻み幅
     CANDLE_RANGE = 5
-    MAX_CANDLE_LEN = (3600 / CANDLE_RANGE)    # 1h分
+    MAX_CANDLE_LEN = int(3600 / CANDLE_RANGE)    # 1h分
 
     # ===========================================================
     # コンストラクタ
