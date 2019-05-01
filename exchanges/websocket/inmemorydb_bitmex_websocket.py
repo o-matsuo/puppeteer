@@ -503,8 +503,7 @@ class BitMEXWebsocket:
     def __wait_for_account(self):
         '''On subscribe, this data will come down. Wait for it.'''
         # Wait for the time.time() to show up from the ws
-        # order, orderBookL2はself.dataを使わなくすると、待ち処理でロックしてしまうので、とりあえずこのまま置いておく。
-        while not {'margin', 'position', 'order', 'orderBookL2'} <= set(self.data):
+        while not {'margin', 'position', 'order', 'execution'} <= set(self.data):
             time.sleep(0.1)
 
     # ===========================================================
@@ -512,7 +511,8 @@ class BitMEXWebsocket:
     # ===========================================================
     def __wait_for_symbol(self, symbol):
         '''On subscribe, this data will come down. Wait for it.'''
-        while not {'instrument', 'trade', 'quote'} <= set(self.data):
+        # order, orderBookL2はself.dataを使わなくすると、待ち処理でロックしてしまうので、とりあえずこのまま置いておく。
+        while not {'instrument', 'trade', 'quote', 'orderBookL2'} <= set(self.data):
             time.sleep(0.1)
 
     # ===========================================================
