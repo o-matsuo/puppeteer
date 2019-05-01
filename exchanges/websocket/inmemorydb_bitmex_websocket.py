@@ -94,6 +94,16 @@ class BitMEXWebsocket:
         self.timemark['insert'] = 0
         self.timemark['update'] = 0
         self.timemark['delete'] = 0
+        self.timemark['count'] = 0
+
+        self.__initialize_timemark('execution')
+        self.__initialize_timemark('order')
+        self.__initialize_timemark('position')
+        self.__initialize_timemark('quote')
+        self.__initialize_timemark('trade')
+        self.__initialize_timemark('margin')
+        self.__initialize_timemark('instrument')
+        self.__initialize_timemark('orderBookL2')
 
         # We can subscribe right in the connection querystring, so let's build that.
         # Subscribe to all pertinent endpoints
@@ -337,6 +347,17 @@ class BitMEXWebsocket:
     # ###########################################################
     # local Methods
     # ###########################################################
+
+    # ===========================================================
+    # timemarkテーブルの初期化
+    # ===========================================================
+    def __initialize_timemark(self, table):
+        self.timemark[table] = {}
+        self.timemark[table]['partial'] = 0
+        self.timemark[table]['insert'] = 0
+        self.timemark[table]['update'] = 0
+        self.timemark[table]['delete'] = 0
+        self.timemark[table]['count'] = 0
 
     # ===========================================================
     # Lock取得
@@ -603,6 +624,9 @@ class BitMEXWebsocket:
                     end = time.time()
                     if self._use_timemark:
                         self.timemark['partial'] += (end - start)
+                        self.timemark['count'] += 1
+                        self.timemark[table]['partial'] += (end - start)
+                        self.timemark[table]['count'] += 1
                     
                 # -----------------------------------------------
                 # insert
@@ -643,6 +667,9 @@ class BitMEXWebsocket:
                     end = time.time()
                     if self._use_timemark:
                         self.timemark['insert'] += (end - start)
+                        self.timemark['count'] += 1
+                        self.timemark[table]['insert'] += (end - start)
+                        self.timemark[table]['count'] += 1
 
                 # -----------------------------------------------
                 # update
@@ -699,6 +726,9 @@ class BitMEXWebsocket:
                     end = time.time()
                     if self._use_timemark:
                         self.timemark['update'] += (end - start)
+                        self.timemark['count'] += 1
+                        self.timemark[table]['update'] += (end - start)
+                        self.timemark[table]['count'] += 1
 
                 # -----------------------------------------------
                 # delete
@@ -729,6 +759,9 @@ class BitMEXWebsocket:
                     end = time.time()
                     if self._use_timemark:
                         self.timemark['delete'] += (end - start)
+                        self.timemark['count'] += 1
+                        self.timemark[table]['delete'] += (end - start)
+                        self.timemark[table]['count'] += 1
                     
                 # -----------------------------------------------
                 # Unknown action
