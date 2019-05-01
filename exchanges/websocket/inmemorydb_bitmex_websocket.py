@@ -6,7 +6,8 @@ import websocket
 # thred操作
 import threading
 # for datetime,time関連
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+import dateutil.parser
 import time
 # json操作
 import json
@@ -24,6 +25,8 @@ import sqlite3
 # for logging
 import logging
 from logging import getLogger, StreamHandler, Formatter
+# listのコピー
+import copy
 
 # サポートクラス
 # 板情報
@@ -47,6 +50,9 @@ class BitMEXWebsocket:
     MAX_TABLE_LEN = 1000
     # order bookの最大保持数
     MAX_ORDERBOOK_LEN = 100
+    # ローソク足の刻み幅
+    CANDLE_RANGE = 5
+    MAX_CANDLE_LEN = (3600 / CANDLE_RANGE)    # 1h分
 
     # ===========================================================
     # コンストラクタ
@@ -69,6 +75,24 @@ class BitMEXWebsocket:
 
         self.data = {}
         self.exited = False
+
+        # candle
+        self._candle = []
+        self._candle_mark_ts = 0
+        self._candle_tick = {}
+        """
+            candleデータの構造
+            {
+                'timestamp': round(datetime.utcnow().timestamp()),
+                'open': 0,
+                'high': 0,
+                'low': 0,
+                'close': 0,
+                'volume': 0,
+                'buy': 0,
+                'sell':0
+            }
+        """
 
         # 時間計測するかどうか
         self._use_timemark = use_timemark
@@ -145,6 +169,10 @@ class BitMEXWebsocket:
                 self.wst.join(timeout=2) # この値が妥当かどうか検討する
                 if self.wst.is_alive() == True:
                     self.logger.warning('thread {} still alive'.format(self.wst))
+                # create candle thread
+                self._candle_thread.join(timeout=2)
+                if self._candle_thread.is_alive() == True:
+                    self.logger.warning('thread {} still alive'.format(self._candle_thread))
                 self.logger.info("All thread is ended.")
                 self.ws.close()
                 self.ws = None
@@ -186,6 +214,10 @@ class BitMEXWebsocket:
                 self.wst.join(timeout=2) # この値が妥当かどうか検討する
                 if self.wst.is_alive() == True:
                     self.logger.warning('thread {} still alive'.format(self.wst))
+                # create candle thread
+                self._candle_thread.join(timeout=2)
+                if self._candle_thread.is_alive() == True:
+                    self.logger.warning('thread {} still alive'.format(self._candle_thread))
                 self.logger.info("All thread is ended.")
                 self.ws.close()
                 self.ws = None
@@ -292,6 +324,25 @@ class BitMEXWebsocket:
         book = self._orderbook.get_orderbook(BitMEXWebsocket.MAX_ORDERBOOK_LEN)
         self.__thread_unlock()
         return book
+    # ===========================================================
+    # candle
+    #   params:
+    #       type: 0, 未確定含まない, 1: 未確定含む
+    # ===========================================================
+    def candle(self, type=0):
+        candle = copy.deepcopy(self._candle)
+        if type == 1:
+            candle.append({
+                'timestamp': self._candle_tick['timestamp'],
+                'open': self._candle_tick['open'],
+                'high': self._candle_tick['high'],
+                'low': self._candle_tick['low'],
+                'close': self._candle_tick['close'],
+                'volume': self._candle_tick['volume'],
+                'buy': self._candle_tick['buy'],
+                'sell': self._candle_tick['sell']
+            })
+        return candle
 
     # ==========================================================
     # ヘルパー関数
@@ -401,6 +452,12 @@ class BitMEXWebsocket:
         self.wst.daemon = True     # mainスレッドが終わったときにサブスレッドも終了する
         self.wst.start()
         self.logger.debug("Started thread")
+
+        # ローソク足チェックスレッド
+        self._candle_thread = threading.Thread(target=self.__check_candle, args=('hoge',))
+        self._candle_thread.daemon = True
+        self._candle_thread.start()
+        self.logger.debug("Started create candle thread")
 
         # Wait for connect before continuing
         conn_timeout = 5
@@ -616,6 +673,28 @@ class BitMEXWebsocket:
                     elif table in ['execution', 'trade', 'quote']:
                         # 配列 [] で登録(partial)・挿入(insert)
                         self.data[table] = message['data']
+                        #----------------------------------------
+                        # candle
+                        #----------------------------------------
+                        if table == 'trade':
+                            # ローソク足の収集開始日時を設定する
+                            self.__create_candle_mark_ts(self.data[table][0]['timestamp'])
+                            # ローソク足のデータを設定する
+                            # 最初の値
+                            self._candle_tick = {
+                                'timestamp': self._candle_mark_ts,
+                                'open': self.data[table][0]['price'],
+                                'high': self.data[table][0]['price'],
+                                'low': self.data[table][0]['price'],
+                                'close': self.data[table][0]['price'],
+                                'volume': self.data[table][0]['size'],
+                                'buy': self.data[table][0]['size'] if self.data[table][0]['side'] == 'Buy' else 0,
+                                'sell': self.data[table][0]['size'] if self.data[table][0]['side'] == 'Sell' else 0
+                            }
+                            if len(message['data']) > 1:
+                                # data部が複数
+                                for trade in message['data'][1:]:
+                                    self.__update_candle_data(trade)
 
                     # unLock
                     self.__thread_unlock()
@@ -656,6 +735,12 @@ class BitMEXWebsocket:
                         self.data[table] += message['data']
                         if len(self.data[table]) > (BitMEXWebsocket.MAX_TABLE_LEN * 1.5):
                             self.data[table] = self.data[table][-BitMEXWebsocket.MAX_TABLE_LEN:]
+                        #----------------------------------------
+                        # candle
+                        #----------------------------------------
+                        if table == 'trade':
+                            for trade in message['data']:
+                                self.__update_candle_data(trade)
                     elif table in ['instrument', 'margin', 'position']:
                         # dataは来ないはず
                         self.logger.error('insert event occured table: {}'.format(table))
@@ -798,6 +883,132 @@ class BitMEXWebsocket:
         '''Called on websocket close.'''
         self.logger.info('Websocket Closed')
 
+    # ===========================================================
+    # ローソク足の収集開始日時を設定する
+    # ===========================================================
+    def __create_candle_mark_ts(self, timestamp):
+        ts = round(dateutil.parser.parse(timestamp).timestamp())
+        self._candle_mark_ts = ts - ts % BitMEXWebsocket.CANDLE_RANGE
+        self.logger.debug('ローソク足開始時刻 {}'.format(self._candle_mark_ts))
+
+    # ===========================================================
+    # ローソク足のデータを更新する
+    # ===========================================================
+    def __update_candle_data(self, trade):
+        ts = round(dateutil.parser.parse(trade['timestamp']).timestamp())
+        """
+        # for DEBUG
+        print('■ mark_ts {} ,ts {}, diff {} :判定 {}, {}'.format(
+                self._candle_mark_ts, 
+                ts, 
+                ts - self._candle_mark_ts,
+                (self._candle_mark_ts < ts <= (self._candle_mark_ts + BitMEXWebsocket.CANDLE_RANGE)),
+                ((self._candle_mark_ts + BitMEXWebsocket.CANDLE_RANGE) < ts)
+            ))
+        """
+        # 開始日時からRANGE内に収まっていたら、既存のcandle_tickを更新する
+        if self._candle_mark_ts < ts <= (self._candle_mark_ts + BitMEXWebsocket.CANDLE_RANGE):
+            #self._candle_tick['timestamp'] = datetime(self._candle_mark_ts)
+            #self._candle_tick['open'] = trade['price']
+            self._candle_tick['high'] = max(self._candle_tick['high'], trade['price'])
+            self._candle_tick['low'] = min(self._candle_tick['low'], trade['price'])
+            self._candle_tick['close'] = trade['price']
+            self._candle_tick['volume'] += trade['size']
+            self._candle_tick['buy'] += trade['size'] if trade['side'] == 'Buy' else 0
+            self._candle_tick['sell'] += trade['size'] if trade['side'] == 'Sell' else 0
+        # 次の時間帯になっていたら、現在のcandle_tickをcandleに追記し、candle_mark_dtを更新して、新しいtickを作る
+        elif (self._candle_mark_ts + BitMEXWebsocket.CANDLE_RANGE) < ts:
+            # candle_mark_dtを更新
+            self._candle_mark_ts = self._candle_mark_ts + BitMEXWebsocket.CANDLE_RANGE
+            # 今のtickをcandleに追加
+            self._candle.append({
+                'timestamp': self._candle_tick['timestamp'],
+                'open': self._candle_tick['open'],
+                'high': self._candle_tick['high'],
+                'low': self._candle_tick['low'],
+                'close': self._candle_tick['close'],
+                'volume': self._candle_tick['volume'],
+                'buy': self._candle_tick['buy'],
+                'sell': self._candle_tick['sell']
+            })
+            # 新しいcandle_tickを作成
+            self._candle_tick['timestamp'] = self._candle_mark_ts
+            self._candle_tick['open'] = self._candle_tick['close']  # この段階ではまだ一つ前のcloseデータが残っているので、このcloseを今回のopenに設定
+            self._candle_tick['high'] = trade['price']
+            self._candle_tick['low'] = trade['price']
+            self._candle_tick['close'] = trade['price']
+            self._candle_tick['volume'] = trade['size']
+            self._candle_tick['buy'] = trade['size'] if trade['side'] == 'Buy' else 0
+            self._candle_tick['sell'] = trade['size'] if trade['side'] == 'Sell' else 0
+
+    # ===========================================================
+    # ローソク足の不足分データが無いかどうかをチェックする
+    # ===========================================================
+    def __check_candle(self, args):
+        # エリア設定待ち
+        while 'trade' not in self.data:
+            time.sleep(1)
+        # データの格納待ち
+        while len(self.trades()) == 0:
+            time.sleep(1)
+
+        UTC = timezone(timedelta(hours=0), name='UTC')
+
+        while True:
+            time.sleep(BitMEXWebsocket.CANDLE_RANGE / 2)
+
+            # Lock
+            self.__thread_lock()
+
+            try:
+                # 現在時刻のtimestamp
+                ts = round(datetime.now(UTC).timestamp())
+                """
+                # for DEBUG
+                print('● mark_ts {} ,ts {}, diff {} :判定 {}, {}'.format(
+                        self._candle_mark_ts, 
+                        ts, 
+                        ts - self._candle_mark_ts,
+                        (self._candle_mark_ts < ts <= (self._candle_mark_ts + BitMEXWebsocket.CANDLE_RANGE)),
+                        ((self._candle_mark_ts + BitMEXWebsocket.CANDLE_RANGE) < ts)
+                    ))
+                """
+                # 次の時間帯になっていたら、現在のcandle_tickをcandleに追記し、candle_mark_dtを更新して、新しいtickを作る
+                if (self._candle_mark_ts + BitMEXWebsocket.CANDLE_RANGE) < ts:
+                    # candle_mark_dtを更新
+                    self._candle_mark_ts = self._candle_mark_ts + BitMEXWebsocket.CANDLE_RANGE
+                    # 今のtickをcandleに追加
+                    self._candle.append({
+                        'timestamp': self._candle_tick['timestamp'],
+                        'open': self._candle_tick['open'],
+                        'high': self._candle_tick['high'],
+                        'low': self._candle_tick['low'],
+                        'close': self._candle_tick['close'],
+                        'volume': self._candle_tick['volume'],
+                        'buy': self._candle_tick['buy'],
+                        'sell': self._candle_tick['sell']
+                    })
+                    # 新しいcandle_tickを作成
+                    self._candle_tick['timestamp'] = self._candle_mark_ts
+                    self._candle_tick['open'] = self._candle_tick['close']  # この段階ではまだ一つ前のcloseデータが残っているので、このcloseを今回のopenに設定
+                    self._candle_tick['high'] = self._candle_tick['close']
+                    self._candle_tick['low'] = self._candle_tick['close']
+                    self._candle_tick['close'] = self._candle_tick['close']
+                    self._candle_tick['volume'] = 0
+                    self._candle_tick['buy'] = 0
+                    self._candle_tick['sell'] = 0
+
+                # 最大サイズ調整
+                if len(self._candle) > (BitMEXWebsocket.MAX_CANDLE_LEN * 1.5):
+                    self._candle = self._candle[-BitMEXWebsocket.MAX_CANDLE_LEN:]
+            except Exception as e:
+                self.logger.error('check candle thread Exception {}'.format(e))
+            finally:
+                pass
+
+            # unLock
+            self.__thread_unlock()
+
 # ###############################################################
 # テスト
 # ###############################################################
@@ -846,6 +1057,8 @@ if __name__ == '__main__':
         def run(self):
             # websocket start
             while self.ws.ws.sock.connected:
+                pass
+                """
                 book = self.ws.orderbook()
                 self.logger.info('orderbook bids[0] {}'.format(book['bids'][0]))
                 time.sleep(0.1)
@@ -853,6 +1066,7 @@ if __name__ == '__main__':
                 self.count += 1
                 if self.count > 3:
                     raise Exception('Unknown')
+                """
 
         def reconnect(self):
             self.count = 0
@@ -886,7 +1100,7 @@ if __name__ == '__main__':
     t = Test(logger=logger)
     while True:
         try:
-            print('-------')
+            print('- inmemorydb_bitmex_websocket debug start -')
             t.run()
         except Exception as e:
             print('loop {}, object {}, socket {}'.format(e, t, t.ws))
