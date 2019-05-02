@@ -170,6 +170,8 @@ if __name__ == '__main__':
             except Exception as e:
                 puppeteer._logger.error('[傀儡師] 例外発生[{}]: 処理を再起動します'.format(e))
                 puppeteer._discord.send('[傀儡師] 例外発生[{}]: 処理を再起動します'.format(e))
+                # websocket再接続
+                puppeteer._ws.reconnect()
                 time.sleep(1)
     
     # ======================================

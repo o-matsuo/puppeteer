@@ -37,7 +37,13 @@ class Puppet(Puppeteer):
     def run(self, ticker, orderbook, position, balance, candle):
         
         # websocketを使う時には、この引数は取得しなくて良い。
+        self._logger.info('<<<<<<<<<<<<<<< running >>>>>>>>>>>>>>>')
         self._logger.info('ticker {}, orderbook {}, position {}, balance {}, candle {}'.format(ticker, orderbook, position, balance, candle))
+
+        # Socketの接続が活きている限り処理を続けます
+        if not self._ws.ws.sock.connected:
+            self._logger.warning('websocket not running')
+            return
 
         # --------------------------
         # ここに処理を記述します
