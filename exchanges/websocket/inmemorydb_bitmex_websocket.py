@@ -163,7 +163,10 @@ class BitMEXWebsocket:
                 self.__thread_exit()
                 # ソケットクローズ
                 self.ws.close()
-                self.ws = None
+        except Exception as e:
+            self.logger.error('websocket reconnect() : thread_exit() and ws.close() error = {}'.format(e))
+        finally:
+            self.ws = None
 
             # メッセージデータ
             self.data = {}
@@ -172,6 +175,7 @@ class BitMEXWebsocket:
             # candle
             self._candle = []
 
+        try:
             # We can subscribe right in the connection querystring, so let's build that.
             # Subscribe to all pertinent endpoints
             wsURL = self.__get_url()
@@ -185,7 +189,7 @@ class BitMEXWebsocket:
                 self.__wait_for_account()
             self.logger.info('Got all market data. Starting.')
         except Exception as e:
-            self.logger.error('websocket reconnect() : error = {}'.format(e))
+            self.logger.error('websocket reconnect() : __connect() and __wait_for_xx() error = {}'.format(e))
 
     # ===========================================================
     # 終了
