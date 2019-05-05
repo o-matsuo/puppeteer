@@ -651,27 +651,30 @@ class BitMEXWebsocket:
                     # Lock
                     self.__thread_lock()
 
-                    # partial
-                    if table in ['orderBookL2']:
-                        # DB に 登録(partial)・挿入(insert)・更新(update)・削除(delete)
-                        # orderbook取得
-                        self._orderbook.replace(message['data'])
-                    elif table in ['order']:
-                        # DB に 登録(partial)・挿入(insert)・更新(update)
-                        # order取得
-                        orders = [o for o in message['data'] if o['leavesQty'] > 0]
-                        self._order.replace(orders)
-                    elif table in ['instrument', 'margin', 'position']:
-                        # 辞書型 {} で登録(partial)・更新(update)
-                        self.data[table].update(message['data'][0])
-                    elif table in ['execution', 'trade', 'quote']:
-                        # 配列 [] で登録(partial)・挿入(insert)
-                        self.data[table] = message['data']
-                        #----------------------------------------
-                        # candle
-                        #----------------------------------------
-                        if table == 'trade':
-                            self.__init_candle_data(self.data[table])
+                    try:
+                        # partial
+                        if table in ['orderBookL2']:
+                            # DB に 登録(partial)・挿入(insert)・更新(update)・削除(delete)
+                            # orderbook取得
+                            self._orderbook.replace(message['data'])
+                        elif table in ['order']:
+                            # DB に 登録(partial)・挿入(insert)・更新(update)
+                            # order取得
+                            orders = [o for o in message['data'] if o['leavesQty'] > 0]
+                            self._order.replace(orders)
+                        elif table in ['instrument', 'margin', 'position']:
+                            # 辞書型 {} で登録(partial)・更新(update)
+                            self.data[table].update(message['data'][0])
+                        elif table in ['execution', 'trade', 'quote']:
+                            # 配列 [] で登録(partial)・挿入(insert)
+                            self.data[table] = message['data']
+                            #----------------------------------------
+                            # candle
+                            #----------------------------------------
+                            if table == 'trade':
+                                self.__init_candle_data(self.data[table])
+                    except Exception as e:
+                        self.logger.error('Exception {} partial {}'.format(table, e))
 
                     # unLock
                     self.__thread_unlock()
@@ -697,30 +700,33 @@ class BitMEXWebsocket:
                     # Lock
                     self.__thread_lock()
 
-                    # insert
-                    if table in ['orderBookL2']:
-                        # DB に 登録(partial)・挿入(insert)・更新(update)・削除(delete)
-                        # orderbook取得
-                        self._orderbook.replace(message['data'])
-                    elif table in ['order']:
-                        # DB に 登録(partial)・挿入(insert)・更新(update)
-                        # order取得
-                        orders = [o for o in message['data'] if o['leavesQty'] > 0]
-                        self._order.replace(orders)
-                    elif table in ['execution', 'trade', 'quote']:
-                        # 配列 [] で登録(partial)・挿入(insert)
-                        self.data[table] += message['data']
-                        if len(self.data[table]) > (BitMEXWebsocket.MAX_TABLE_LEN * 1.5):
-                            self.data[table] = self.data[table][-BitMEXWebsocket.MAX_TABLE_LEN:]
-                        #----------------------------------------
-                        # candle
-                        #----------------------------------------
-                        if table == 'trade':
-                            for trade in message['data']:
-                                self.__update_candle_data(trade)
-                    elif table in ['instrument', 'margin', 'position']:
-                        # dataは来ないはず
-                        self.logger.error('insert event occured table: {}'.format(table))
+                    try:
+                        # insert
+                        if table in ['orderBookL2']:
+                            # DB に 登録(partial)・挿入(insert)・更新(update)・削除(delete)
+                            # orderbook取得
+                            self._orderbook.replace(message['data'])
+                        elif table in ['order']:
+                            # DB に 登録(partial)・挿入(insert)・更新(update)
+                            # order取得
+                            orders = [o for o in message['data'] if o['leavesQty'] > 0]
+                            self._order.replace(orders)
+                        elif table in ['execution', 'trade', 'quote']:
+                            # 配列 [] で登録(partial)・挿入(insert)
+                            self.data[table] += message['data']
+                            if len(self.data[table]) > (BitMEXWebsocket.MAX_TABLE_LEN * 1.5):
+                                self.data[table] = self.data[table][-BitMEXWebsocket.MAX_TABLE_LEN:]
+                            #----------------------------------------
+                            # candle
+                            #----------------------------------------
+                            if table == 'trade':
+                                for trade in message['data']:
+                                    self.__update_candle_data(trade)
+                        elif table in ['instrument', 'margin', 'position']:
+                            # dataは来ないはず
+                            self.logger.error('insert event occured table: {}'.format(table))
+                    except Exception as e:
+                        self.logger.error('Exception {} insert {}'.format(table, e))
 
                     # unLock
                     self.__thread_unlock()
@@ -746,40 +752,43 @@ class BitMEXWebsocket:
                     # Lock
                     self.__thread_lock()
 
-                    # update
-                    if table in ['orderBookL2']:
-                        # DB に 登録(partial)・挿入(insert)・更新(update)・削除(delete)
-                        # orderbook取得
-                        self._orderbook.update(message['data'])
-                    elif table in ['order']:
-                        # DB に 登録(partial)・挿入(insert)・更新(update)
-                        # order取得
-                        update_order = []
-                        delete_order = []
-                        for order in message['data']:
-                            if 'leavesQty' in order:    # leavesQtyを持っているデータ
-                                if order['leavesQty'] <= 0:
-                                    # 削除対象
-                                    delete_order.append(order)
+                    try:
+                        # update
+                        if table in ['orderBookL2']:
+                            # DB に 登録(partial)・挿入(insert)・更新(update)・削除(delete)
+                            # orderbook取得
+                            self._orderbook.update(message['data'])
+                        elif table in ['order']:
+                            # DB に 登録(partial)・挿入(insert)・更新(update)
+                            # order取得
+                            update_order = []
+                            delete_order = []
+                            for order in message['data']:
+                                if 'leavesQty' in order:    # leavesQtyを持っているデータ
+                                    if order['leavesQty'] <= 0:
+                                        # 削除対象
+                                        delete_order.append(order)
+                                    else:
+                                        update_order.append(order)
                                 else:
                                     update_order.append(order)
-                            else:
-                                update_order.append(order)
-                        # orderを更新
-                        for o in update_order:
-                            # order情報をUpdate
-                            order = self._order.select(o['orderID'])
-                            order[0].update(o)
-                            self._order.replace(order)
-                        # キャンセルや約定済みorderを削除
-                        if len(delete_order) != 0:
-                            self._order.delete(delete_order)
-                    elif table in ['instrument', 'margin', 'position']:
-                        # 辞書型 {} で登録(partial)・更新(update)
-                        self.data[table].update(message['data'][0])
-                    elif table in ['execution', 'trade', 'quote']:
-                        # dataは来ないはず
-                        self.logger.error('update event occured table: {}'.format(table))
+                            # orderを更新
+                            for o in update_order:
+                                # order情報をUpdate
+                                order = self._order.select(o['orderID'])
+                                order[0].update(o)
+                                self._order.replace(order)
+                            # キャンセルや約定済みorderを削除
+                            if len(delete_order) != 0:
+                                self._order.delete(delete_order)
+                        elif table in ['instrument', 'margin', 'position']:
+                            # 辞書型 {} で登録(partial)・更新(update)
+                            self.data[table].update(message['data'][0])
+                        elif table in ['execution', 'trade', 'quote']:
+                            # dataは来ないはず
+                            self.logger.error('update event occured table: {}'.format(table))
+                    except Exception as e:
+                        self.logger.error('Exception {} update {}'.format(table, e))
 
                     # unLock
                     self.__thread_unlock()
@@ -805,14 +814,17 @@ class BitMEXWebsocket:
                     # Lock
                     self.__thread_lock()
 
-                    # delete
-                    if table in ['orderBookL2']:
-                        # DB に 登録(partial)・挿入(insert)・更新(update)・削除(delete)
-                        # orderbook取得
-                        self._orderbook.delete(message['data'])
-                    elif table in ['execution', 'instrument', 'trade', 'quote', 'margin', 'position', 'order']:
-                        # dataは来ないはず
-                        self.logger.error('delete event occured table: {}'.format(table))
+                    try:
+                        # delete
+                        if table in ['orderBookL2']:
+                            # DB に 登録(partial)・挿入(insert)・更新(update)・削除(delete)
+                            # orderbook取得
+                            self._orderbook.delete(message['data'])
+                        elif table in ['execution', 'instrument', 'trade', 'quote', 'margin', 'position', 'order']:
+                            # dataは来ないはず
+                            self.logger.error('delete event occured table: {}'.format(table))
+                    except Exception as e:
+                        self.logger.error('Exception {} delete {}'.format(table, e))
 
                     # unLock
                     self.__thread_unlock()
@@ -826,11 +838,11 @@ class BitMEXWebsocket:
                         self.timemark[table]['count'] += 1
                     
                 # -----------------------------------------------
-                # Unknown action
+                # Unknown action は無視する
                 # -----------------------------------------------
                 else:
-                    # 例外をスロー
-                    raise Exception("Unknown action: %s" % action)
+                    #raise Exception("Unknown action: %s" % action)
+                    self.logger.error('Unknown action {}'.format(action))
         except:
             self.logger.error(traceback.format_exc())
 
@@ -1042,6 +1054,7 @@ if __name__ == '__main__':
             while self.ws.ws.sock.connected:
                 pass
                 """
+                # for DEBUG
                 book = self.ws.orderbook()
                 self.logger.info('orderbook bids[0] {}'.format(book['bids'][0]))
                 time.sleep(0.1)
@@ -1071,7 +1084,8 @@ if __name__ == '__main__':
 
         def run(self):
             print('run')
-            raise Exception('exception run')
+            # for DEBUG
+            #raise Exception('exception run')
 
         def exit(self):
             print('exit')
