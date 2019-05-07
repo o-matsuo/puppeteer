@@ -776,8 +776,15 @@ class BitMEXWebsocket:
                             for o in update_order:
                                 # order情報をUpdate
                                 order = self._order.select(o['orderID'])
-                                order[0].update(o)
-                                self._order.replace(order)
+                                if len(order) != 0:
+                                    # orderはdeleteが通知されないかわりに update で leavesQty = 0 の通知をもって delete としているが、
+                                    # ごく稀に leavesQty = 0 の通知の後、update が再び通知されることがあるが、
+                                    # その後すぐに leavesQty = 0 が再度通知されるので問題ない。DBに存在しない update は無視することとする。
+                                    order[0].update(o)
+                                    self._order.replace(order)
+                                else:
+                                    # for DEBUG                                
+                                    self.logger.debug('{}, {}, {}, {}'.format(table, action, o['orderID'], 'already deleted'))
                             # キャンセルや約定済みorderを削除
                             if len(delete_order) != 0:
                                 self._order.delete(delete_order)
