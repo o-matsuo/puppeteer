@@ -10,18 +10,17 @@ import requests
 #       URL: discord webhook url
 # ==========================================
 class Discord:
-    _discord_webhook_url = ''   # discord通知用URL
 
     # ======================================
     # 初期化
     #   param:
     #       URL: discord webhook url
     # ======================================
-    def __init__(self, discord_webhook_url):
+    def __init__(self, discord_webhook_url=''):
         # ----------------------------------
         # discord webhook url設定
         # ----------------------------------
-        self._discord_webhook_url = discord_webhook_url
+        self._discord_webhook_url = discord_webhook_url # discord通知用URL
 
     # ======================================
     # 通知

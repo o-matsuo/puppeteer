@@ -50,6 +50,14 @@ class OrderBook:
         finally:
             c.close()
 
+        self.logger.info('class OrderBook initialized')
+
+    # ===========================================================
+    # デストラクタ
+    # ===========================================================
+    def __del__(self):
+        self.logger.info('class OrderBook deleted')
+
     #==================================
     # REPLACE
     #  データが有ればUpdate, なければInsertする。

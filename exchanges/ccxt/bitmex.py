@@ -17,16 +17,12 @@ import logging
 # ###############################################################
 class BitMEX:
 
-    _symbol = 'BTC/USD'
-
-    _exchange = None
-
-    _logger = None
+    SYMBOL = 'BTC/USD'
 
     #==================================
     # 初期化
     #==================================
-    def __init__(self, symbol='BTC/USD', apiKey=None, secret=None, logger=None, use_testnet=False):
+    def __init__(self, symbol=SYMBOL, apiKey=None, secret=None, logger=None, use_testnet=False):
         # 取引所オブジェクト(ccxt.bitmex)
         self._exchange = ccxt.bitmex({
             'apiKey': apiKey,
@@ -40,6 +36,14 @@ class BitMEX:
         self._symbol = symbol
 
         self._logger = logger if logger is not None else logging.getLogger(__name__)
+
+        self._logger.info('class BitMEX initialized')
+
+    # ===========================================================
+    # デストラクタ
+    # ===========================================================
+    def __del__(self):
+        self._logger.info('class BitMEX deleted')
 
     # ##########################################################
     # ヘルパー関数
@@ -119,7 +123,7 @@ class BitMEX:
     #   return:
     #       order
     # ==========================================================
-    def open_orders(self, symbol=_symbol):
+    def open_orders(self, symbol=SYMBOL):
 
         orders = None
 
@@ -364,7 +368,7 @@ class BitMEX:
     # ======================================
     # ticker
     # ======================================
-    def ticker(self, symbol=_symbol):
+    def ticker(self, symbol=SYMBOL):
         return self._exchange.fetch_ticker(
                 symbol=symbol   # シンボル
             )
@@ -372,7 +376,7 @@ class BitMEX:
     # ======================================
     # 板情報取得
     # ======================================
-    def orderbook(self, symbol=_symbol, limit=100):
+    def orderbook(self, symbol=SYMBOL, limit=100):
         return self._exchange.fetch_order_book(
                 symbol=symbol,  # シンボル
                 limit=limit     # 取得件数(未指定:100、MAX:500)
@@ -389,7 +393,7 @@ class BitMEX:
     #       reverse: True(New->Old)、False(Old->New)　未指定時はFlase (注意：sineceを指定せずに、このフラグをTrueにすると最古のデータは2016年頃のデータが取れる)
     #       partial: True(最新の未確定足を含む)、False(含まない)　未指定はTrue　（注意：まだバグっているのか、Falseでも最新足が含まれる）
     # ======================================
-    def ohlcv(self, symbol=_symbol, timeframe='1m', since=None, limit=None, params={}):
+    def ohlcv(self, symbol=SYMBOL, timeframe='1m', since=None, limit=None, params={}):
         # timeframe1期間あたりの秒数
         period = {'1m': 1 * 60, '5m': 5 * 60, '1h': 60 * 60, '1d': 24 * 60 * 60}
     

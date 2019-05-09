@@ -43,6 +43,14 @@ class Order:
             self.commit(c)
         finally:
             c.close()
+            
+        self.logger.info('class Order initialized')
+
+    # ===========================================================
+    # デストラクタ
+    # ===========================================================
+    def __del__(self):
+        self.logger.info('class Order deleted')
 
     #==================================
     # REPLACE

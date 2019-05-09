@@ -35,13 +35,6 @@ args = sys.argv
 # 傀儡師
 # ==========================================
 class Puppeteer:
-    _exchange = None            # 取引所オブジェクト(ccxt.bitmex)
-    _Puppet = None              # ストラテジ(ユーザが作成)
-    _config = None              # 定義情報(JSON)
-    _logger = None              # logger設定
-    _discord = None             # discordオブジェクト
-    _bitmex = None              # ccxt.bitmexラッパー
-    _ws = None                  # websocket
 
     # ======================================
     # 初期化

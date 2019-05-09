@@ -59,12 +59,21 @@ class BitMEXWebsocket:
     # ===========================================================
     def __init__(self, endpoint, symbol='XBTUSD', api_key=None, api_secret=None, logger=None, use_timemark=False):
         '''Connect to the websocket and initialize data stores.'''
+        # -------------------------------------------------------
+        # logger
+        # -------------------------------------------------------
         self.logger = logger if logger is not None else logging.getLogger(__name__)
         self.logger.info("BitMEXWebsocket constructor")
 
+        # -------------------------------------------------------
+        # endpoint, symbol
+        # -------------------------------------------------------
         self.endpoint = endpoint
         self.symbol = symbol
 
+        # -------------------------------------------------------
+        # apikey,secret
+        # -------------------------------------------------------
         if api_key is not None and api_secret is None:
             raise ValueError('api_secret is required if api_key is provided')
         if api_key is None and api_secret is not None:
@@ -73,61 +82,24 @@ class BitMEXWebsocket:
         self.api_key = api_key
         self.api_secret = api_secret
 
-        # メッセージデータ
-        self.data = {}
-        self.exited = False
-
-        # candle
-        self._candle = []
-        """
-            candleデータの構造
-            {
-                'timestamp': round(datetime.utcnow().timestamp()),
-                'open': 0,
-                'high': 0,
-                'low': 0,
-                'close': 0,
-                'volume': 0,
-                'buy': 0,
-                'sell':0
-            }
-        """
-
+        # -------------------------------------------------------
         # 時間計測するかどうか
+        # -------------------------------------------------------
         self._use_timemark = use_timemark
 
+        # -------------------------------------------------------
         # Threadのロック用オブジェクト
+        # -------------------------------------------------------
         self._lock = threading.Lock()
 
-        # sqlite3 (in memory database)
-        self._db = sqlite3.connect(
-                database=':memory:',            # in memory
-                isolation_level='EXCLUSIVE',    # 開始時にEXCLUSIVEロックを取得する
-                check_same_thread=False         # 他のスレッドからの突入を許す
-            )
+        # -------------------------------------------------------
+        # ローカル変数 設定
+        # -------------------------------------------------------
+        self.__initialize_params()
 
-        # orderbook クラス作成
-        self._orderbook = OrderBook(self._db, self.logger)
-        # order クラス作成
-        self._order = Order(self._db, self.logger)
-
-        # 高速化のため、各処理の処理時間を格納するtimemarkを作成
-        self.timemark = {}
-        self.timemark['partial'] = 0
-        self.timemark['insert'] = 0
-        self.timemark['update'] = 0
-        self.timemark['delete'] = 0
-        self.timemark['count'] = 0
-
-        self.__initialize_timemark('execution')
-        self.__initialize_timemark('order')
-        self.__initialize_timemark('position')
-        self.__initialize_timemark('quote')
-        self.__initialize_timemark('trade')
-        self.__initialize_timemark('margin')
-        self.__initialize_timemark('instrument')
-        self.__initialize_timemark('orderBookL2')
-
+        # -------------------------------------------------------
+        # websocket初期化、スレッド生成
+        # -------------------------------------------------------
         # We can subscribe right in the connection querystring, so let's build that.
         # Subscribe to all pertinent endpoints
         wsURL = self.__get_url()
@@ -135,6 +107,9 @@ class BitMEXWebsocket:
         self.__connect(wsURL, symbol)
         self.logger.info('Connected to WS.')
 
+        # -------------------------------------------------------
+        # 各メッセージの「partial」が到着するまで待機
+        # -------------------------------------------------------
         # Connected. Wait for partials
         self.__wait_for_symbol(symbol)
         if api_key:
@@ -155,26 +130,20 @@ class BitMEXWebsocket:
     # ###########################################################
     def reconnect(self):
 
-        try:
-            # websokectクローズ, thread停止
-            if self.ws is not None:
-                self.ws.keep_running = False # 永遠に実行中をやめる
-                # スレッド終了
-                self.__thread_exit()
-                # ソケットクローズ
-                self.ws.close()
-        except Exception as e:
-            self.logger.error('websocket reconnect() : thread_exit() and ws.close() error = {}'.format(e))
-        finally:
-            self.ws = None
+        # -------------------------------------------------------
+        # 終了処理が未実施だったら終了処理を実行
+        # -------------------------------------------------------
+        if not self.exited:
+            self.exit()
 
-            # メッセージデータ
-            self.data = {}
-            self.exited = False
+        # -------------------------------------------------------
+        # ローカル変数 再設定開始
+        # -------------------------------------------------------
+        self.__initialize_params()
 
-            # candle
-            self._candle = []
-
+        # -------------------------------------------------------
+        # websocket初期化、スレッド生成
+        # -------------------------------------------------------
         try:
             # We can subscribe right in the connection querystring, so let's build that.
             # Subscribe to all pertinent endpoints
@@ -182,14 +151,20 @@ class BitMEXWebsocket:
             self.logger.info("Connecting to %s" % wsURL)
             self.__connect(wsURL, self.symbol)
             self.logger.info('Connected to WS.')
+        except Exception as e:
+            self.logger.error('websocket reconnect() : __connect() error = {}'.format(e))
 
+        # -------------------------------------------------------
+        # 各メッセージの「partial」が到着するまで待機
+        # -------------------------------------------------------
+        try:
             # Connected. Wait for partials
             self.__wait_for_symbol(self.symbol)
             if self.api_key:
                 self.__wait_for_account()
             self.logger.info('Got all market data. Starting.')
         except Exception as e:
-            self.logger.error('websocket reconnect() : __connect() and __wait_for_xx() error = {}'.format(e))
+            self.logger.error('websocket reconnect() : __wait_for_xx() error = {}'.format(e))
 
     # ===========================================================
     # 終了
@@ -197,20 +172,66 @@ class BitMEXWebsocket:
     def exit(self):
         '''Call this to exit - will close websocket.'''
         self.exited = True
+        # for DEBUG
+        time.sleep(1)
+
+        # -------------------------------------------------------
+        # check candle スレッドの終了
+        # -------------------------------------------------------
         try:
-            # websokectクローズ, thread停止
-            if self.ws is not None:
+            # スレッド終了
+            self.__check_candle_thread_exit()
+        except Exception as e:
+            self.logger.error('websocket exit() check candle thread exit : error = {}'.format(e))
+        finally:
+            #self._check_candle_thread = None   # reconnect の再帰に備えてクリアしない
+            pass
+
+        # -------------------------------------------------------
+        # websocketのクローズ
+        # -------------------------------------------------------
+        try:
+            # websokectクローズ
+            if self.ws:
                 self.ws.keep_running = False # 永遠に実行中をやめる
-                # スレッド終了
-                self.__thread_exit()
                 # ソケットクローズ
-                self.ws.close()
-                self.ws = None
+                if self.ws.sock or self.ws.sock.connected:
+                    self.ws.close()
+                    self.logger.info('websocket exit() socket closed')
+                    time.sleep(1)
+        except Exception as e:
+            self.logger.error('websocket exit() socket close: error = {}'.format(e))
+        finally:
+            #self.ws = None
+            pass
+
+        # -------------------------------------------------------
+        # websocket スレッドの終了
+        # -------------------------------------------------------
+        try:
+            # スレッド終了
+            self.__wst_thread_exit()
+        except Exception as e:
+            self.logger.error('websocket exit() websocket thread exit : error = {}'.format(e))
+        finally:
+            #self.wst = None     # reconnect の再帰に備えてクリアしない
+            self.ws = None
+
+        # -------------------------------------------------------
+        # DBクローズ
+        # -------------------------------------------------------
+        try:
             # db close
             self._db.close()
-            self._db = None
+            # db用オブジェクトの削除
+            del self._orderbook
+            del self._order
         except Exception as e:
-            self.logger.error('websocket exit() : error = {}'.format(e))
+            self.logger.error('websocket exit() db close : error = {}'.format(e))
+        finally:
+            self._db = None
+            self._orderbook = None
+            self._order = None
 
     # ===========================================================
     # quote, trade, execution は追記型
@@ -375,6 +396,60 @@ class BitMEXWebsocket:
     # ###########################################################
 
     # ===========================================================
+    # ローカル変数の初期化
+    #   プログラムで変更される可能性のあるデータ
+    # ===========================================================
+    def __initialize_params(self):
+        # メッセージデータ
+        self.data = {}
+        self.exited = False
+
+        # candle
+        self._candle = []
+        """
+            candleデータの構造
+            {
+                'timestamp': round(datetime.utcnow().timestamp()),
+                'open': 0,
+                'high': 0,
+                'low': 0,
+                'close': 0,
+                'volume': 0,
+                'buy': 0,
+                'sell':0
+            }
+        """
+
+        # sqlite3 (in memory database)
+        self._db = sqlite3.connect(
+                database=':memory:',            # in memory
+                isolation_level='EXCLUSIVE',    # 開始時にEXCLUSIVEロックを取得する
+                check_same_thread=False         # 他のスレッドからの突入を許す
+            )
+
+        # orderbook クラス作成
+        self._orderbook = OrderBook(self._db, self.logger)
+        # order クラス作成
+        self._order = Order(self._db, self.logger)
+
+        # 高速化のため、各処理の処理時間を格納するtimemarkを作成
+        self.timemark = {}
+        self.timemark['partial'] = 0
+        self.timemark['insert'] = 0
+        self.timemark['update'] = 0
+        self.timemark['delete'] = 0
+        self.timemark['count'] = 0
+
+        self.__initialize_timemark('execution')
+        self.__initialize_timemark('order')
+        self.__initialize_timemark('position')
+        self.__initialize_timemark('quote')
+        self.__initialize_timemark('trade')
+        self.__initialize_timemark('margin')
+        self.__initialize_timemark('instrument')
+        self.__initialize_timemark('orderBookL2')
+
+    # ===========================================================
     # timemarkテーブルの初期化
     # ===========================================================
     def __initialize_timemark(self, table):
@@ -386,23 +461,41 @@ class BitMEXWebsocket:
         self.timemark[table]['count'] = 0
 
     # ===========================================================
-    # thread終了
+    # websocket thread終了
     # ===========================================================
-    def __thread_exit(self):
-        """
+    def __wst_thread_exit(self):
         while self.wst.is_alive():
-            self.wst.join(timeout=1) # この値が妥当かどうか検討する
+            self.wst.join(timeout=3) # この値が妥当かどうか検討する
             if self.wst.is_alive() == True:
-                self.logger.warning('thread {} still alive'.format(self.wst))
+                self.logger.warning('websocket thread {} still alive'.format(self.wst))
+            else:
+                self.logger.info("websocket thread is ended.")
         """
-        self.wst.join(timeout=2) # この値が妥当かどうか検討する
+        self.wst.join(timeout=5) # この値が妥当かどうか検討する
         if self.wst.is_alive() == True:
-            self.logger.warning('thread {} still alive'.format(self.wst))
+            self.logger.warning('websocket thread {} still alive'.format(self.wst))
+        else:
+            self.logger.info("websocket thread is ended.")
+        """
+
+    # ===========================================================
+    # check candle thread終了
+    # ===========================================================
+    def __check_candle_thread_exit(self):
         # check candle thread
-        self._candle_thread.join(timeout=2)
-        if self._candle_thread.is_alive() == True:
-            self.logger.warning('thread {} still alive'.format(self._candle_thread))
-        self.logger.info("All thread is ended.")
+        while self._check_candle_thread.is_alive():
+            self._check_candle_thread.join(timeout=3) # この値が妥当かどうか検討する
+            if self._check_candle_thread.is_alive() == True:
+                self.logger.warning('check candle thread {} still alive'.format(self._check_candle_thread))
+            else:
+                self.logger.info("check candle thread is ended.")
+        """
+        self._check_candle_thread.join(timeout=5)
+        if self._check_candle_thread.is_alive() == True:
+            self.logger.warning('check candle thread {} still alive'.format(self._check_candle_thread))
+        else:
+            self.logger.info("check candle thread is ended.")
+        """
 
     # ===========================================================
     # Lock取得
@@ -432,8 +525,9 @@ class BitMEXWebsocket:
     # ===========================================================
     def __connect(self, wsURL, symbol):
         '''Connect to the websocket in a thread.'''
-        self.logger.debug("Starting thread")
-
+        # -------------------------------------------------------
+        # websocket
+        # -------------------------------------------------------
         self.ws = websocket.WebSocketApp(wsURL,
                                          on_message=self.__on_message,
                                          on_close=self.__on_close,
@@ -441,19 +535,27 @@ class BitMEXWebsocket:
                                          on_error=self.__on_error,
                                          header=self.__get_auth())
         self.ws.keep_running = True # 実行中を保持する
+        self.logger.debug("Started websocket connection")
 
+        # -------------------------------------------------------
+        # websocket スレッド
+        # -------------------------------------------------------
         self.wst = threading.Thread(target=lambda: self.ws.run_forever())
         self.wst.daemon = True     # mainスレッドが終わったときにサブスレッドも終了する
         self.wst.start()
-        self.logger.debug("Started thread")
+        self.logger.debug("Started websocket thread")
 
+        # -------------------------------------------------------
         # ローソク足チェックスレッド
-        self._candle_thread = threading.Thread(target=self.__check_candle, args=('hoge',))
-        self._candle_thread.daemon = True
-        self._candle_thread.start()
+        # -------------------------------------------------------
+        self._check_candle_thread = threading.Thread(target=self.__check_candle, args=('check_candle',))
+        self._check_candle_thread.daemon = True
+        self._check_candle_thread.start()
         self.logger.debug("Started check candle thread")
 
+        # -------------------------------------------------------
         # Wait for connect before continuing
+        # -------------------------------------------------------
         conn_timeout = 5
         while not self.ws.sock or not self.ws.sock.connected and conn_timeout:
             time.sleep(1)
@@ -462,6 +564,11 @@ class BitMEXWebsocket:
             self.logger.error("Couldn't connect to WS! Exiting.")
             self.exit()
             raise websocket.WebSocketTimeoutException('Couldn\'t connect to WS! Exiting.')
+
+        # -------------------------------------------------------
+        # コネクション確立
+        # -------------------------------------------------------
+        self.logger.info("Started websocket & threads")
 
     # ===========================================================
     # nonce作成
@@ -859,7 +966,7 @@ class BitMEXWebsocket:
     def __on_error(self, ws, error):
         '''Called on fatal websocket errors. We exit on these.'''
         if not self.exited:
-            self.logger.error("Error : %s" % error)
+            self.logger.error("__on_error() Error : %s" % error)
             # エラーが発生したらソケットをクロースずる
             self.exit()
             # 例外をスロー
@@ -961,9 +1068,14 @@ class BitMEXWebsocket:
 
         UTC = timezone(timedelta(hours=0), name='UTC')
 
-        while True:
+        # メイン処理が生存している間だけ処理する
+        while not self.exited:
             # candle生成時間の半分だけ待つ
             time.sleep(BitMEXWebsocket.CANDLE_RANGE / 2)
+
+            # websocketが接続中でなかった場合は待ち
+            if not self.ws or not self.ws.sock or not self.ws.sock.connected:
+                continue
 
             # Lock
             self.__thread_lock()
