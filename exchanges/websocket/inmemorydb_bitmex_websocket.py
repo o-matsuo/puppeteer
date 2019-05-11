@@ -195,18 +195,6 @@ class BitMEXWebsocket:
         time.sleep(1)
 
         # -------------------------------------------------------
-        # check candle スレッドの終了
-        # -------------------------------------------------------
-        try:
-            # スレッド終了
-            self.__check_candle_thread_exit()
-        except Exception as e:
-            self.logger.error('websocket exit() check candle thread exit : error = {}'.format(e))
-        finally:
-            #self._check_candle_thread = None   # reconnect の再帰に備えてクリアしない
-            pass
-
-        # -------------------------------------------------------
         # websocketのクローズ
         # -------------------------------------------------------
         try:
@@ -214,10 +202,10 @@ class BitMEXWebsocket:
             if self.ws:
                 self.ws.keep_running = False # 永遠に実行中をやめる
                 # ソケットクローズ
-                #if self.ws.sock or self.ws.sock.connected:
-                self.ws.close()
-                self.logger.info('websocket exit() socket closed')
-                time.sleep(1)
+                if self.ws.sock and self.ws.sock.connected:
+                    self.ws.close()
+                    self.logger.info('websocket exit() socket closed')
+                    time.sleep(1)
         except Exception as e:
             self.logger.error('websocket exit() socket close: error = {}'.format(e))
         finally:
@@ -234,7 +222,19 @@ class BitMEXWebsocket:
             self.logger.error('websocket exit() websocket thread exit : error = {}'.format(e))
         finally:
             #self.wst = None     # reconnect の再帰に備えてクリアしない
-            self.ws = None
+            pass
+
+        # -------------------------------------------------------
+        # check candle スレッドの終了
+        # -------------------------------------------------------
+        try:
+            # スレッド終了
+            self.__check_candle_thread_exit()
+        except Exception as e:
+            self.logger.error('websocket exit() check candle thread exit : error = {}'.format(e))
+        finally:
+            #self._check_candle_thread = None   # reconnect の再帰に備えてクリアしない
+            pass
 
         # -------------------------------------------------------
         # DBクローズ
@@ -251,6 +251,12 @@ class BitMEXWebsocket:
             self._db = None
             self._orderbook = None
             self._order = None
+
+    # ===========================================================
+    # 強制終了の通知がONか？(__on_errorで設定される)
+    # ===========================================================
+    def is_force_exit(self):
+        return self.__force_exit
 
     # ===========================================================
     # quote, trade, execution は追記型
@@ -421,7 +427,10 @@ class BitMEXWebsocket:
     def __initialize_params(self):
         # メッセージデータ
         self.data = {}
+        # 本クラスを終了させるときにONにするフラグ
         self.exited = False
+        # socket側からerror通知を受けた時ONにする。外部プログラムからこのフラグを見て reconnect するかどうかを決める
+        self.__force_exit = False
 
         # candle
         self._candle = []
@@ -483,38 +492,32 @@ class BitMEXWebsocket:
     # websocket thread終了
     # ===========================================================
     def __wst_thread_exit(self):
+        # スレッドを終了させようとしても終了しないことが多数ある。最終的にsocketがクローズされると終了しているので、タイムアウトしたらそのまま処理を終えるようにする。
+        self.wst.join(timeout=3) # この値が妥当かどうか検討する
+        '''
+        # websocket thread
         while self.wst.is_alive():
             self.wst.join(timeout=3) # この値が妥当かどうか検討する
             if self.wst.is_alive() == True:
                 self.logger.warning('websocket thread {} still alive'.format(self.wst))
             else:
                 self.logger.info("websocket thread is ended.")
-        """
-        self.wst.join(timeout=5) # この値が妥当かどうか検討する
-        if self.wst.is_alive() == True:
-            self.logger.warning('websocket thread {} still alive'.format(self.wst))
-        else:
-            self.logger.info("websocket thread is ended.")
-        """
+        '''
 
     # ===========================================================
     # check candle thread終了
     # ===========================================================
     def __check_candle_thread_exit(self):
+        # スレッドを終了させようとしても終了しないことが多数ある。最終的にsocketがクローズされると終了しているので、タイムアウトしたらそのまま処理を終えるようにする。
+        self._check_candle_thread.join(timeout=3) # この値が妥当かどうか検討する
+        '''
         # check candle thread
         while self._check_candle_thread.is_alive():
-            self._check_candle_thread.join(timeout=3) # この値が妥当かどうか検討する
             if self._check_candle_thread.is_alive() == True:
                 self.logger.warning('check candle thread {} still alive'.format(self._check_candle_thread))
             else:
                 self.logger.info("check candle thread is ended.")
-        """
-        self._check_candle_thread.join(timeout=5)
-        if self._check_candle_thread.is_alive() == True:
-            self.logger.warning('check candle thread {} still alive'.format(self._check_candle_thread))
-        else:
-            self.logger.info("check candle thread is ended.")
-        """
+        '''
 
     # ===========================================================
     # Lock取得
@@ -575,12 +578,13 @@ class BitMEXWebsocket:
         # -------------------------------------------------------
         # Wait for connect before continuing
         # -------------------------------------------------------
-        conn_timeout = 10
+        conn_timeout = 5
         while not self.ws.sock or not self.ws.sock.connected and conn_timeout:
             time.sleep(1)
             conn_timeout -= 1
         if not conn_timeout:
             self.logger.error("Couldn't connect to WS! Exiting.")
+            # 別スレッドから終了処理をしているので大丈夫
             self.exit()
             raise websocket.WebSocketTimeoutException('Couldn\'t connect to WS! Exiting.')
 
@@ -986,8 +990,8 @@ class BitMEXWebsocket:
         '''Called on fatal websocket errors. We exit on these.'''
         if not self.exited:
             self.logger.error("__on_error() Error : %s" % error)
-            # エラーが発生したらソケットをクロースずる
-            self.exit()
+            # 強制終了フラグをONにする（このフラグがたったときにはすでにsock.connectedがOFFかもしれないが）
+            self.__force_exit = True
             # 例外をスロー
             raise websocket.WebSocketException(error)
 
@@ -1085,10 +1089,11 @@ class BitMEXWebsocket:
         while len(self.trades()) == 0:
             time.sleep(1)
 
+        # UTC = timezone.utc    # でも良かったみたい
         UTC = timezone(timedelta(hours=0), name='UTC')
 
-        # メイン処理が生存している間だけ処理する
-        while not self.exited:
+        # socketが接続されている間だけ処理する
+        while self.ws.sock and self.ws.sock.connected:
             # candle生成時間の半分だけ待つ
             time.sleep(BitMEXWebsocket.CANDLE_RANGE / 2)
 
@@ -1096,14 +1101,6 @@ class BitMEXWebsocket:
             self.__thread_lock()
 
             try:
-                # websocketが接続中でなかった場合は待ち
-                if not self.ws:
-                    raise Exception('not websocket')
-                if not self.ws.sock:
-                    raise Exception('not websocket.sock')
-                if not self.ws.sock.connected:
-                    raise Exception('not websocket.sock.connected')
-
                 # 現在時刻(UTC)のtimestamp
                 ts = round(datetime.now(UTC).timestamp())
                 # 最後のcandle足
@@ -1193,7 +1190,7 @@ if __name__ == '__main__':
 
         def run(self):
             # websocket start
-            while self.ws.ws.sock.connected:
+            while self.ws.ws.sock and self.ws.ws.sock.connected and not self.ws.is_force_exit():
                 pass
                 """
                 # for DEBUG
@@ -1243,7 +1240,8 @@ if __name__ == '__main__':
             t.run()
         except Exception as e:
             print('loop {}, object {}, socket {}'.format(e, t, t.ws))
-            t.reconnect()
         finally:
+            t.reconnect()
             time.sleep(5)
+            print('- inmemorydb_bitmex_websocket restart -')
 

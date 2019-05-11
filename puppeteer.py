@@ -166,7 +166,7 @@ if __name__ == '__main__':
                 # websocket再接続
                 if puppeteer._config['USE_WEBSOCKET']:
                     puppeteer._ws.reconnect()
-                time.sleep(1)
+                time.sleep(5)
     
     # ======================================
     # メインループ
@@ -217,6 +217,11 @@ if __name__ == '__main__':
                     limit=Puppeteer._config['ORDERBOOK']['LIMIT']           # 取得件数(未指定:100、MAX:500)
                 ) if Puppeteer._config['USE']['ORDERBOOK'] == True else None
             # print('bid={}, ask={}'.format(orderbook['bids'][0][0], orderbook['asks'][0][0]))
+            # ----------------------------------
+            # websocketを使っていた場合、force_exitフラグのチェック
+            # ----------------------------------
+            if Puppeteer._config['USE_WEBSOCKET'] and Puppeteer._ws.is_force_exit():
+                raise Exception('websocket force exit')
             # ----------------------------------
             # ストラテジ呼び出し
             # ----------------------------------
