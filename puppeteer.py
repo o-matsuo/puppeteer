@@ -121,8 +121,8 @@ class Puppeteer:
                 use_timemark=False
             ) if self._config['USE_WEBSOCKET'] == True else None
         # instrumentメソッドを一度呼び出さないとエラーを吐くので追加(内部的にtickerがこの情報を使用するため)
-        if self._config['USE_WEBSOCKET'] == True:
-            self._ws.instrument()
+        #if self._config['USE_WEBSOCKET'] == True:
+        #    self._ws.instrument()
         # ----------------------------------
         # Discord生成
         # ----------------------------------

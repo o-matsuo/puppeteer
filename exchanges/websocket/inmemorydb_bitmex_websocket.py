@@ -110,8 +110,17 @@ class BitMEXWebsocket:
         # -------------------------------------------------------
         # 各メッセージの「partial」が到着するまで待機
         # -------------------------------------------------------
-        # Connected. Wait for partials
+        # apikeyが必要無いもの
+        # -------------------------------------------------------
         self.__wait_for_symbol(symbol)
+        # -------------------------------------------------------
+        # tickerがinstrumentの情報を使用するため
+        # -------------------------------------------------------
+        time.sleep(0.1)
+        self.instrument()
+        # -------------------------------------------------------
+        # apikeyを持つもの
+        # -------------------------------------------------------
         if api_key:
             self.__wait_for_account()
         self.logger.info('Got all market data. Starting.')
@@ -158,8 +167,18 @@ class BitMEXWebsocket:
         # 各メッセージの「partial」が到着するまで待機
         # -------------------------------------------------------
         try:
-            # Connected. Wait for partials
+            # ---------------------------------------------------
+            # apikeyが必要無いもの
+            # ---------------------------------------------------
             self.__wait_for_symbol(self.symbol)
+            # ---------------------------------------------------
+            # tickerがinstrumentの情報を使用するため
+            # ---------------------------------------------------
+            time.sleep(0.1)
+            self.instrument()
+            # ---------------------------------------------------
+            # apikeyを持つもの
+            # ---------------------------------------------------
             if self.api_key:
                 self.__wait_for_account()
             self.logger.info('Got all market data. Starting.')
@@ -1163,7 +1182,7 @@ if __name__ == '__main__':
                     use_timemark=False
                 )
             # instrumentメソッドを一度呼び出さないとエラーを吐くので追加(内部的にget_tickerがこの情報を使用するため)
-            self.ws.instrument()
+            #self.ws.instrument()
 
             # 例外発生のカウント
             self.count = 0
