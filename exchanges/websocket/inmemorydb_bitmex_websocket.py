@@ -214,10 +214,10 @@ class BitMEXWebsocket:
             if self.ws:
                 self.ws.keep_running = False # 永遠に実行中をやめる
                 # ソケットクローズ
-                if self.ws.sock or self.ws.sock.connected:
-                    self.ws.close()
-                    self.logger.info('websocket exit() socket closed')
-                    time.sleep(1)
+                #if self.ws.sock or self.ws.sock.connected:
+                self.ws.close()
+                self.logger.info('websocket exit() socket closed')
+                time.sleep(1)
         except Exception as e:
             self.logger.error('websocket exit() socket close: error = {}'.format(e))
         finally:
@@ -575,7 +575,7 @@ class BitMEXWebsocket:
         # -------------------------------------------------------
         # Wait for connect before continuing
         # -------------------------------------------------------
-        conn_timeout = 5
+        conn_timeout = 10
         while not self.ws.sock or not self.ws.sock.connected and conn_timeout:
             time.sleep(1)
             conn_timeout -= 1
@@ -1092,14 +1092,18 @@ class BitMEXWebsocket:
             # candle生成時間の半分だけ待つ
             time.sleep(BitMEXWebsocket.CANDLE_RANGE / 2)
 
-            # websocketが接続中でなかった場合は待ち
-            if not self.ws or not self.ws.sock or not self.ws.sock.connected:
-                continue
-
             # Lock
             self.__thread_lock()
 
             try:
+                # websocketが接続中でなかった場合は待ち
+                if not self.ws:
+                    raise Exception('not websocket')
+                if not self.ws.sock:
+                    raise Exception('not websocket.sock')
+                if not self.ws.sock.connected:
+                    raise Exception('not websocket.sock.connected')
+
                 # 現在時刻(UTC)のtimestamp
                 ts = round(datetime.now(UTC).timestamp())
                 # 最後のcandle足
