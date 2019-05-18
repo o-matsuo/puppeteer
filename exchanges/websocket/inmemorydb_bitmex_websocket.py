@@ -152,6 +152,7 @@ class BitMEXWebsocket:
 
         # -------------------------------------------------------
         # websocket初期化、スレッド生成
+        # 各メッセージの「partial」が到着するまで待機
         # -------------------------------------------------------
         try:
             # We can subscribe right in the connection querystring, so let's build that.
@@ -160,13 +161,6 @@ class BitMEXWebsocket:
             self.logger.info("Connecting to %s" % wsURL)
             self.__connect(wsURL, self.symbol)
             self.logger.info('Connected to WS.')
-        except Exception as e:
-            self.logger.error('websocket reconnect() : __connect() error = {}'.format(e))
-
-        # -------------------------------------------------------
-        # 各メッセージの「partial」が到着するまで待機
-        # -------------------------------------------------------
-        try:
             # ---------------------------------------------------
             # apikeyが必要無いもの
             # ---------------------------------------------------
@@ -183,7 +177,7 @@ class BitMEXWebsocket:
                 self.__wait_for_account()
             self.logger.info('Got all market data. Starting.')
         except Exception as e:
-            self.logger.error('websocket reconnect() : __wait_for_xx() error = {}'.format(e))
+            self.logger.error('websocket reconnect() : error = {}'.format(e))
 
     # ===========================================================
     # 終了
