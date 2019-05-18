@@ -11,7 +11,7 @@ import pprint
 # ログのライブラリ
 import logging
 from logging import getLogger, StreamHandler, Formatter
-from logging.handlers import TimedRotatingFileHandler
+from logging.handlers import TimedRotatingFileHandler, RotatingFileHandler
 from os.path import splitext, basename
 # fetch_ohlcv改良
 from datetime import datetime
@@ -25,6 +25,7 @@ from exchanges.websocket.inmemorydb_bitmex_websocket import BitMEXWebsocket
 # Puppeteer モジュール
 # ==========================================
 from modules.discord import Discord           # Discordクラス
+from modules.balance import Balance           # Balanceクラス  
 
 # ==========================================
 # python pupeteer <実行ファイルのフルパス> <実行定義JSONファイルのフルパス>
@@ -71,6 +72,29 @@ class Puppeteer:
         timedrotating_handler.setFormatter(formatter)
         logger.addHandler(timedrotating_handler)
         self._logger = logger
+        # ----------------------------------
+        # 資産状況通知loggerの設定
+        # ----------------------------------
+        self._balanceLogName = base + '-balance'   # ログ名称
+        # balance格納用ログ
+        # loggerオブジェクトの宣言
+        balanceLogger = getLogger("balanceLogger")
+        # loggerのログレベル設定(ハンドラに渡すエラーメッセージのレベル)
+        balanceLogger.setLevel(logging.DEBUG)   # 絶対にログを出すので
+        # Formatterの生成
+        formatter = Formatter(
+                fmt='%(message)s'
+            )
+        # file handlerの生成・追加
+        rotating_handler = RotatingFileHandler(
+                filename='logs/' + self._balanceLogName + '.log',     # logファイル名
+                maxBytes=100*1000*1000,                 # 100MBを指定
+                backupCount=7,                          # 7個保持
+                encoding='UTF-8'                        # UTF-8
+            )
+        rotating_handler.setFormatter(formatter)
+        balanceLogger.addHandler(rotating_handler)
+        self._balanceLogger = balanceLogger             # balanceデータ格納ロガー
         # ----------------------------------
         # 引数チェック
         # ----------------------------------
@@ -127,6 +151,11 @@ class Puppeteer:
         # Discord生成
         # ----------------------------------
         self._discord = Discord(self._config['DISCORD_WEBHOOK_URL'])
+        # ------------------------------
+        # 資産状況通知を使うか
+        # ------------------------------
+        if 'USE_SEND_BALANCE' not in self._config:
+            self._config['USE_SEND_BALANCE'] = False
         # ----------------------------------
         # ストラテジのロードと生成
         # ----------------------------------
@@ -153,6 +182,8 @@ if __name__ == '__main__':
     # ======================================
     def start():
         puppeteer = Puppeteer(args=args)
+        # 資産状況通知
+        balance = Balance(puppeteer) if puppeteer._config['USE_SEND_BALANCE'] else None
         while True:
             try:
                 run(Puppeteer=puppeteer)
