@@ -1,7 +1,7 @@
 # オープンソース 仮想通貨自動取引bot開発フレームワーク
 ##  〜〜〜　Puppeteer (傀儡師)　〜〜〜
 
-<img src="docs/image/puppeteer_main.png" width="640">
+![docs/image/puppeteer_main.png](docs/image/puppeteer_main.png)
 
 ## Puppeteer(傀儡師)とは
 
