@@ -40,9 +40,9 @@ class Puppet(Puppeteer):
         self._logger.info('<<<<<<<<<<<<<<< running >>>>>>>>>>>>>>>')
         self._logger.info('ticker {}, orderbook {}, position {}, balance {}, candle {}'.format(ticker, orderbook, position, balance, candle))
 
-        # Socketの接続が活きている限り処理を続けます
-        if not self._ws.ws.sock.connected:
-            self._logger.warning('websocket not running')
+        # Socketの接続が活きている and 強制終了フラグがOFF の限り処理を続ける
+        if not self._ws.ws.sock and not self._ws.ws.sock.connected and self._ws.is_force_exit():
+            self._logger.warning('websocket not running / force exit')
             return
 
         # --------------------------
