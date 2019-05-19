@@ -32,9 +32,6 @@ from puppeteer import Puppeteer
 #       puppeteer: Puppeteerオブジェクト
 # ==========================================
 class Puppet(Puppeteer):
-    _exchange = None    # 取引所オブジェクト(ccxt.bitmex)
-    _logger = None      # logger
-    _config = None      # 定義ファイル
 
     # ==========================================================
     # 初期化
@@ -166,6 +163,9 @@ ma.json
 
     "//" : "discord通知用URL",
     "DISCORD_WEBHOOK_URL" : "",
+
+    "//" : "資産状況通知をするか",
+    "USE_SEND_BALANCE" : false,
 
     "//" : "===============================================",
     "//" : " ユーザで自由に定義",

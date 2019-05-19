@@ -129,11 +129,20 @@ Puppetはクラス生成時に、引数としてPuppeteer本体オブジェク�
         "LIMIT" : null
     },
 
+    "//" : "websocketを使用するかどうかを指定",
+    "USE_WEBSOCKET" : false,
+
+    "//" : "ログレベルを指定。（'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'）",
+    "LOG_LEVEL" : "INFO",
+
     "//" : "インターバル（botの実行周期）を秒で設定",
     "INTERVAL" :30,
 
     "//" : "discord通知用URL",
     "DISCORD_WEBHOOK_URL" : "",
+
+    "//" : "資産状況通知をするか",
+    "USE_SEND_BALANCE" : false,
 
     "//" : "===============================================",
     "//" : " ユーザで自由に定義",
@@ -172,3 +181,4 @@ Puppetはクラス生成時に、引数としてPuppeteer本体オブジェク�
 
   - DISCORD_WEBHOOK_URL : discord通知を使用するときに、discordのwebhook urlを設定します。
   
+  - USE_SEND_BALANCE : 資産状況を通知するかどうかを設定します。（通知先はdiscord）
