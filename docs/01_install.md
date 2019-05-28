@@ -45,6 +45,7 @@ git clone https://gitlab.com/o-matsuo/puppeteer.git
 sudo pip install ccxt
 sudo pip install importlib
 sudo pip install matplotlib
+sudo pip install pandas
 sudo pip install websocket-client==0.47
 ```
 
