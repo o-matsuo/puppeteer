@@ -36,9 +36,6 @@ from puppeteer import Puppeteer
 #       puppeteer: Puppeteerオブジェクト
 # ==========================================
 class Puppet(Puppeteer):
-    _exchange = None    # 取引所オブジェクト(ccxt.bitmex)
-    _logger = None      # logger
-    _config = None      # 定義ファイル
 
     # ==========================================================
     # 初期化
@@ -147,7 +144,7 @@ Puppetはクラス生成時に、引数としてPuppeteer本体オブジェク�
     "//" : "===============================================",
     "//" : " ユーザで自由に定義",
     "//" : "===============================================",
-    "//" : "売買するサイズ",
+    "//" : "売買するサイズ(←例えばの例です)",
     "LOT_SIZE" :50
 }
 ```
@@ -181,4 +178,5 @@ Puppetはクラス生成時に、引数としてPuppeteer本体オブジェク�
 
   - DISCORD_WEBHOOK_URL : discord通知を使用するときに、discordのwebhook urlを設定します。
   
-  - USE_SEND_BALANCE : 資産状況を通知するかどうかを設定します。（通知先はdiscord）
+  - USE_SEND_BALANCE : 資産状況を通知するかどうかを設定します。（通知先はdiscord）   
+  資産に変化があった時に資産状況を通知します。通知の間隔は60秒毎です。
