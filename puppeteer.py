@@ -14,7 +14,7 @@ from logging import getLogger, StreamHandler, Formatter
 from logging.handlers import TimedRotatingFileHandler, RotatingFileHandler
 from os.path import splitext, basename
 # fetch_ohlcv改良
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import calendar
 # bitmexラッパー
 from exchanges.ccxt.bitmex import BitMEX
@@ -26,6 +26,7 @@ from exchanges.websocket.inmemorydb_bitmex_websocket import BitMEXWebsocket
 # ==========================================
 from modules.discord import Discord           # Discordクラス
 from modules.balance import Balance           # Balanceクラス  
+from modules.heartbeat import Heartbeat       # Heartbeatクラス
 
 # ==========================================
 # python pupeteer <実行ファイルのフルパス> <実行定義JSONファイルのフルパス>
@@ -43,6 +44,11 @@ class Puppeteer:
     #       args: Puppeteer起動時の引数
     # ======================================
     def __init__(self, args):
+        # ----------------------------------
+        # timezone,timestamp
+        # ----------------------------------
+        self._tz = timezone.utc
+        self._ts = datetime.now(self._tz).timestamp()
         # ----------------------------------
         # loggerの設定
         # ----------------------------------
@@ -184,6 +190,7 @@ if __name__ == '__main__':
         puppeteer = Puppeteer(args=args)
         # 資産状況通知
         balance = Balance(puppeteer) if puppeteer._config['USE_SEND_BALANCE'] else None
+        heartbeat = Heartbeat(puppeteer) if puppeteer._config['USE_WEBSOCKET'] else None
         while True:
             try:
                 run(Puppeteer=puppeteer)
@@ -204,6 +211,10 @@ if __name__ == '__main__':
     # ======================================
     def run(Puppeteer):
         while True:
+            # ----------------------------------
+            # timestamp更新
+            # ----------------------------------
+            Puppeteer._ts = datetime.now(Puppeteer._tz).timestamp()
             # ----------------------------------
             # 処理開始
             # ----------------------------------
