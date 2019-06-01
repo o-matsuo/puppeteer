@@ -83,6 +83,22 @@ class BitMEXWebsocket:
         self.api_secret = api_secret
 
         # -------------------------------------------------------
+        # timezone, timestamp
+        # -------------------------------------------------------
+        self._tz = timezone.utc
+        self._ts = datetime.now(self._tz).timestamp()
+
+        # -------------------------------------------------------
+        # websocket status
+        #   0:  initial
+        #   1:  open
+        #   2:  close
+        #   3:  error
+        #   4:  message
+        # -------------------------------------------------------
+        self._ws_status = 0     # まだ何もしていない状態
+
+        # -------------------------------------------------------
         # 時間計測するかどうか
         # -------------------------------------------------------
         self._use_timemark = use_timemark
@@ -542,6 +558,15 @@ class BitMEXWebsocket:
     def __connect(self, wsURL, symbol):
         '''Connect to the websocket in a thread.'''
         # -------------------------------------------------------
+        # websocket status
+        #   0:  initial
+        #   1:  open
+        #   2:  close
+        #   3:  error
+        #   4:  message
+        # -------------------------------------------------------
+        self._ws_status = 0
+        # -------------------------------------------------------
         # websocket
         # -------------------------------------------------------
         self.ws = websocket.WebSocketApp(wsURL,
@@ -704,6 +729,18 @@ class BitMEXWebsocket:
     # ===========================================================
     def __on_message(self, ws, message):
         '''Handler for parsing WS messages.'''
+        # -------------------------------------------------------
+        # websocket status
+        #   0:  initial
+        #   1:  open
+        #   2:  close
+        #   3:  error
+        #   4:  message
+        # -------------------------------------------------------
+        self._ws_status = 4
+        # 時刻のタイムスタンプを更新
+        self._ts = datetime.now(self._tz).timestamp()
+        #
         message = json.loads(message)
         self.logger.debug(json.dumps(message))
 
@@ -982,8 +1019,18 @@ class BitMEXWebsocket:
     # ===========================================================
     def __on_error(self, ws, error):
         '''Called on fatal websocket errors. We exit on these.'''
+        self.logger.error("websocket: __on_error() : %s" % error)
+        # -------------------------------------------------------
+        # websocket status
+        #   0:  initial
+        #   1:  open
+        #   2:  close
+        #   3:  error
+        #   4:  message
+        # -------------------------------------------------------
+        self._ws_status = 3
+        #
         if not self.exited:
-            self.logger.error("__on_error() Error : %s" % error)
             # 強制終了フラグをONにする（このフラグがたったときにはすでにsock.connectedがOFFかもしれないが）
             self.__force_exit = True
             # 例外をスロー
@@ -994,14 +1041,32 @@ class BitMEXWebsocket:
     # ===========================================================
     def __on_open(self, ws):
         '''Called when the WS opens.'''
-        self.logger.debug("Websocket Opened.")
+        self.logger.info("websocket: __on_open()")
+        # -------------------------------------------------------
+        # websocket status
+        #   0:  initial
+        #   1:  open
+        #   2:  close
+        #   3:  error
+        #   4:  message
+        # -------------------------------------------------------
+        self._ws_status = 1
 
     # ===========================================================
     # クローズ受信部
     # ===========================================================
     def __on_close(self, ws):
         '''Called on websocket close.'''
-        self.logger.info('Websocket Closed')
+        self.logger.info("websocket: __on_close()")
+        # -------------------------------------------------------
+        # websocket status
+        #   0:  initial
+        #   1:  open
+        #   2:  close
+        #   3:  error
+        #   4:  message
+        # -------------------------------------------------------
+        self._ws_status = 2
 
     # ===========================================================
     # ローソク足の収集開始
