@@ -59,6 +59,11 @@ class Heartbeat:
     # ==========================================================
     def __run(self, args):
         while True:
+            # ---------------------------------------------------
+            # 時刻が0秒をすぎたら実行する
+            # ---------------------------------------------------
+            while datetime.now(self._tz).second not in [0,1,2]:
+                time.sleep(1)
 
             # 開始
             start = time.time()
@@ -79,6 +84,8 @@ class Heartbeat:
             except Exception as e:
                 self._logger.error('check heart beat thread: Exception: {}'.format(e))
             
+            time.sleep(5)
+
             # 終了
             end = time.time()
             elapsed_time = end - start
