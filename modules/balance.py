@@ -45,6 +45,8 @@ class Balance:
         # ログファイル名
         self._balanceLogName = Puppeteer._balanceLogName    # ログファイル名
 
+        self._loop_sec = 60     # ループ時間（秒）
+
         # すでにあるwalletBalanceファイルを読み込む
         self._walletBalance = 0
         try:
@@ -93,6 +95,9 @@ class Balance:
     # ==========================================================
     def __run(self, args):
         while True:
+            # 開始
+            start = time.time()
+
             try:
                 # ------------------------------------------------------
                 # 今回の資産状況
@@ -155,6 +160,16 @@ class Balance:
             except Exception as e:
                 self._logger.error('balance send Exception: {}'.format(e))
             
-            # time
-            time.sleep(60)
+            # 終了
+            end = time.time()
+            elapsed_time = end - start
+
+            # ---------------------------------------------------
+            # 時間調整
+            # ---------------------------------------------------
+            if elapsed_time >= self._loop_sec:
+                # それほど時間を消費することはないと思うが、念のため
+                self._logger.warning('balance send thread: use time {}'.format(elapsed_time))
+            else:
+                time.sleep(self._loop_sec - elapsed_time)
 

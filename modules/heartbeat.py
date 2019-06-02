@@ -63,7 +63,7 @@ class Heartbeat:
             # 時刻が0秒をすぎたら実行する
             # ---------------------------------------------------
             while datetime.now(self._tz).second not in [0,1,2]:
-                time.sleep(1)
+                time.sleep(0.5)
 
             # 開始
             start = time.time()
@@ -76,11 +76,21 @@ class Heartbeat:
                 # -----------------------------------------------
                 # Puppeteer動作heart beat
                 # -----------------------------------------------
-                self._logger.warning('puppeteer ts:{}, diff:{}'.format(self._puppeteer._ts, self._ts - self._puppeteer._ts))
+                if self._ts - self._puppeteer._ts > 60:
+                    # Puppeteerの実行が60秒停止していた場合
+                    self._logger.error('puppeteer ts:{}, diff:{}'.format(self._puppeteer._ts, self._ts - self._puppeteer._ts))
+                    # websocket 再接続
+                    self._puppeteer._ws.exited = False
+                    self._puppeteer._ws.reconnect()
                 # -----------------------------------------------
                 # websocke動作heart beat
                 # -----------------------------------------------
-                self._logger.warning('websocket ts:{}, diff:{}, status:{}'.format(self._ws._ts, self._ts - self._ws._ts, self._ws._ws_status))
+                elif self._ts - self._ws._ts > 60:
+                    # websocketのデータ受信が60秒以上停止していたら
+                    self._logger.error('websocket ts:{}, diff:{}, status:{}'.format(self._ws._ts, self._ts - self._ws._ts, self._ws._ws_status))
+                    # websocket 再接続
+                    self._puppeteer._ws.exited = False
+                    self._puppeteer._ws.reconnect()
             except Exception as e:
                 self._logger.error('check heart beat thread: Exception: {}'.format(e))
             

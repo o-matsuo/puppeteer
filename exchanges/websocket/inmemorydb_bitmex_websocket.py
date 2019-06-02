@@ -154,6 +154,7 @@ class BitMEXWebsocket:
     # public methods
     # ###########################################################
     def reconnect(self):
+        self.logger.info('websocket reconnect(): start')
 
         # -------------------------------------------------------
         # 終了処理が未実施だったら終了処理を実行
@@ -702,18 +703,36 @@ class BitMEXWebsocket:
     # ===========================================================
     def __wait_for_account(self):
         '''On subscribe, this data will come down. Wait for it.'''
+        # -------------------------------------------------------
         # Wait for the time.time() to show up from the ws
-        while not {'margin', 'position', 'order', 'execution'} <= set(self.data):
+        # -------------------------------------------------------
+        wait_timeout = 600
+        while not {'margin', 'position', 'order', 'execution'} <= set(self.data) and wait_timeout:
             time.sleep(0.1)
+            wait_timeout -= 1
+        if not wait_timeout:
+            self.logger.error("Couldn't wait [margin][position][order][execution].")
+            # 別スレッドから終了処理をしているので大丈夫
+            self.exit()
+            raise websocket.WebSocketTimeoutException('Couldn\'t wait [margin][position][order][execution].')
 
     # ===========================================================
     # シンボル待ち
     # ===========================================================
     def __wait_for_symbol(self, symbol):
         '''On subscribe, this data will come down. Wait for it.'''
+        # -------------------------------------------------------
         # order, orderBookL2はself.dataを使わなくすると、待ち処理でロックしてしまうので、とりあえずこのまま置いておく。
+        # -------------------------------------------------------
+        wait_timeout = 600
         while not {'instrument', 'trade', 'quote', 'orderBookL2'} <= set(self.data):
             time.sleep(0.1)
+            wait_timeout -= 1
+        if not wait_timeout:
+            self.logger.error("Couldn't wait [instrument][trade][quote][orderBookL2].")
+            # 別スレッドから終了処理をしているので大丈夫
+            self.exit()
+            raise websocket.WebSocketTimeoutException('Couldn\'t wait [instrument][trade][quote][orderBookL2].')
 
     # ===========================================================
     # コマンド送信（現在未使用）
@@ -804,7 +823,7 @@ class BitMEXWebsocket:
                 # -----------------------------------------------
                 if action == 'partial':
 
-                    self.logger.debug("%s: partial" % table)
+                    self.logger.info("Received [%s]: partial" % table)
 
                     #処理時間計測開始
                     start = time.time()
