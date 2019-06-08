@@ -18,6 +18,7 @@ import logging
 class BitMEX:
 
     SYMBOL = 'BTC/USD'
+    __NAME = 'bitmex'       # 取引所名
 
     #==================================
     # 初期化
@@ -44,6 +45,25 @@ class BitMEX:
     # ===========================================================
     def __del__(self):
         self._logger.info('class BitMEX deleted')
+
+    # ##########################################################
+    # インナー関数
+    # ##########################################################
+    # ==========================================================
+    # bitmexのccxtから戻される ExchangeError からerrorオブジェクトを抜き出す
+    #   なぜにJSON形式でないのか？
+    # ==========================================================
+    def __get_error(self, exception):
+        # bitmexのccxtから戻される ExchangeError は次のような形をしている
+        # 例：
+        #   bitmex {"error":{"message":"orderQty is invalid","name":"HTTPError"}}
+        # 上記からerrorオブジェクトを取り出す
+        ret = None
+        try:
+            ret = eval('{}'.format(exception).replace(BitMEX.__NAME,''))
+        except Exception as e:
+            ret = {'error': {'message': '{}'.format(e), 'name': 'BitMEX.__get_error'}}
+        return ret
 
     # ##########################################################
     # ヘルパー関数
@@ -132,7 +152,7 @@ class BitMEX:
             self._logger.debug('■ open orders={}'.format(orders))
         except Exception as e:
             self._logger.error('■ open orders: exception={}'.format(e))
-            orders = None
+            orders = self.__get_error(e)
 
         return orders
 
@@ -167,7 +187,7 @@ class BitMEX:
             self._logger.debug('■ limit order={}'.format(order))
         except Exception as e:
             self._logger.error('■ limit order: exception={}'.format(e))
-            order = None
+            order = self.__get_error(e)
 
         return order
 
@@ -199,7 +219,7 @@ class BitMEX:
             self._logger.debug('■ market order={}'.format(order))
         except Exception as e:
             self._logger.error('■ market order: exception={}'.format(e))
-            order = None
+            order = self.__get_error(e)
 
         return order
 
@@ -234,7 +254,7 @@ class BitMEX:
             self._logger.debug('■ limit settle order={}'.format(order))
         except Exception as e:
             self._logger.error('■ limit settle order: exception={}'.format(e))
-            order = None
+            order = self.__get_error(e)
 
         return order
 
@@ -267,7 +287,7 @@ class BitMEX:
             self._logger.debug('■ market settle order={}'.format(order))
         except Exception as e:
             self._logger.error('■ market settle order: exception={}'.format(e))
-            order = None
+            order = self.__get_error(e)
 
         return order
 
@@ -288,7 +308,7 @@ class BitMEX:
             self._logger.debug('■ amend order={}'.format(order))
         except Exception as e:
             self._logger.error('■ amend order: exception={}'.format(e))
-            order = None
+            order = self.__get_error(e)
         
         return order
 
@@ -301,16 +321,16 @@ class BitMEX:
     # ==========================================================
     def cancel_order(self, **options):
 
-        orders = None
+        order = None
 
         try:
-            orders = self._exchange.privateDeleteOrder(options)
-            self._logger.debug('■ cancel orders={}'.format(orders))
+            order = self._exchange.privateDeleteOrder(options)
+            self._logger.debug('■ cancel order={}'.format(order))
         except Exception as e:
-            self._logger.error('■ cancel orders: exception={}'.format(e))
-            orders = None
+            self._logger.error('■ cancel order: exception={}'.format(e))
+            order = self.__get_error(e)
 
-        return orders
+        return order
 
     # ==========================================================
     # 複数注文キャンセル
@@ -328,7 +348,7 @@ class BitMEX:
             self._logger.debug('■ cancel orders={}'.format(orders))
         except Exception as e:
             self._logger.error('■ cancel orders: exception={}'.format(e))
-            orders = None
+            orders = self.__get_error(e)
 
         return orders
 
@@ -348,7 +368,7 @@ class BitMEX:
             self._logger.debug('■ bulk orders={}'.format(orders))
         except Exception as e:
             self._logger.error('■ bulk orders: exception={}'.format(e))
-            orders = None
+            orders = self.__get_error(e)
 
         return orders
 
