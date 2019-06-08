@@ -365,6 +365,13 @@ class BitMEXWebsocket:
         self.__thread_lock()
         book = self._orderbook.get_orderbook(BitMEXWebsocket.MAX_ORDERBOOK_LEN)
         self.__thread_unlock()
+
+        # もし、orderbookの内容が壊れて、bidとaskの整合性が崩れたたら例外を発行する
+        bid = book['bids'][0]['price']
+        ask = book['asks'][0]['price']
+        if bid >= ask:
+            raise Exception('orderbook: bid({}) >= ask({})'.format(bid, ask))
+
         return book
     # ===========================================================
     # candle
