@@ -309,6 +309,10 @@ class BitMEX:
         except Exception as e:
             self._logger.error('■ amend order: exception={}'.format(e))
             order = self.__get_error(e)
+            # {"error":{"message":"Invalid orderID","name":"HTTPError"}} の場合
+            # 変更するはずのIDが見つからない場合、ID情報を格納しているバッファが崩れている可能性がるので、本体に例外で通知する
+            if order['error']['message'] in ['Invalid orderID']:
+                raise Exception(order)
         
         return order
 
@@ -329,6 +333,10 @@ class BitMEX:
         except Exception as e:
             self._logger.error('■ cancel order: exception={}'.format(e))
             order = self.__get_error(e)
+            # {"error":{"message":"Not Found","name":"HTTPError"}} の場合
+            # キャンセルするはずのIDが見つからない場合、ID情報を格納しているバッファが崩れている可能性がるので、本体に例外で通知する
+            if order['error']['message'] in ['Not Found']:
+                raise Exception(order)
 
         return order
 
