@@ -1,10 +1,10 @@
-### 初版
+### v1.0.0
 
-- タグ: v1.0.0
+- 初版
 
-### websocket, bitmexラッパー対応
+### v1.0.1
 
-- タグ: v1.0.1
+- websocket, bitmexラッパー対応
 
 - websocketサンプル
 ```
@@ -13,14 +13,23 @@
     - sample1.py
     - sample1.json
 ```
-### 5秒ローソク足追加
+### v1.0.2
 
-- タグ: v1.0.2
+- 5秒ローソク足追加
 
-### websocket再接続処理修正
+### v1.0.3
 
-- タグ: v1.0.3
+- websocket再接続処理修正
 
-### 資産状況通知対応
+### v1.0.4
 
-- タグ: v1.0.4
+- 資産状況通知対応
+
+### v1.0.5
+
+- websocket再接続処理を整理
+
+### v1.0.6
+
+- cancel_order, amend_orderで不正なIDを使用した場合にException。
+- orderbook破壊でException。
