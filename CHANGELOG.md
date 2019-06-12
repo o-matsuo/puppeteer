@@ -33,3 +33,7 @@
 
 - cancel_order, amend_orderで不正なIDを使用した場合にException。
 - orderbook破壊でException。
+
+### v1.0.7
+
+- [Ta-Libのインストール](./docs/04_indicator.md)を追加

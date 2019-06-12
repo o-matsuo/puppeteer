@@ -27,6 +27,7 @@
 - 01.[インストール](./docs/01_install.md)
 - 02.[設定](./docs/02_setting.md)
 - 03.[試行](./docs/03_test_run.md)
+- 04.[インジケータ](./docs/04_indicator.md)
 
 ## 注意事項
 
