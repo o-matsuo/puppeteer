@@ -20,5 +20,5 @@ sudo make install
 
 sudo bash -c "echo "/usr/local/lib64" >> /etc/ld.so.conf"
 sudo /sbin/ldconfig
-sudo pip3 install ta-lib
+sudo pip install ta-lib
 ```
