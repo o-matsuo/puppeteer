@@ -42,6 +42,12 @@ class Puppet(Puppeteer):
         # --------------------------
         # ここに処理を記述します
         # --------------------------
+
+        # ------------------------------------------------------
+        # tick
+        # ------------------------------------------------------
+        self._logger.info('tick:{}'.format(ticker['last']))
+
         # ------------------------------------------------------
         # orderbookから最新のbid/askを取得する
         # ------------------------------------------------------
@@ -51,15 +57,21 @@ class Puppet(Puppeteer):
         if bid == 0 or ask == 0 or bid == None or ask == None :
             self._logger.error('orderbook error: bid={}, ask={}'.format(bid, ask))
             return
+        self._logger.info('bid:{}, ask:{}'.format(bid, ask))
 
         # ------------------------------------------------------
         # ポジションサイズ、参入価格
         # ------------------------------------------------------
         pos_qty = position[0]['currentQty'] if position[0]['currentQty'] is not None else 0
         avg_price = position[0]['avgEntryPrice'] if position[0]['avgEntryPrice'] is not None else 0
+        self._logger.info('pos_qty:{}, avg_price:{}'.format(pos_qty, avg_price))        
 
         # ------------------------------------------------------
-        # LOT取得
+        # 資産
         # ------------------------------------------------------
-        lot = self._config['LOT_SIZE']
+        self._logger.info('balance[walletBalance]={}'.format(balance['info'][0]['walletBalance'] * 0.00000001))
         
+        # ------------------------------------------------------
+        # ローソク足
+        # ------------------------------------------------------
+        self._logger.info('candle[last]:{}'.format(candle[-1]))

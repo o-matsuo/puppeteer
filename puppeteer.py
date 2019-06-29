@@ -223,8 +223,7 @@ if __name__ == '__main__':
             # ローソク足情報取得
             #  ローカル関数を使用
             # ----------------------------------
-            candle = fetch_ohlcv(
-                    bitmex=Puppeteer._exchange,                              # ccxt.bitmex
+            candle = Puppeteer._bitmex.ohlcv(
                     symbol=Puppeteer._config['SYMBOL'],                      # シンボル
                     timeframe=Puppeteer._config['CANDLE']['TIMEFRAME'],      # timeframe= 1m 5m 1h 1d
                     since=Puppeteer._config['CANDLE']['SINCE'],              # データ取得開始時刻(Unix Timeミリ秒)
@@ -237,24 +236,24 @@ if __name__ == '__main__':
             # ----------------------------------
             # 資産状況の取得
             # ----------------------------------
-            balance = Puppeteer._exchange.fetch_balance() if Puppeteer._config['USE']['BALANCE'] == True else None
+            balance = Puppeteer._bitmex.balance() if Puppeteer._config['USE']['BALANCE'] == True else None
             # print('BTC={}'.format(balance['BTC']['total']))
             # ----------------------------------
             # ポジション取得
             # ----------------------------------
-            position = Puppeteer._exchange.private_get_position() if Puppeteer._config['USE']['POSITION'] == True else None
+            position = Puppeteer._bitmex.position() if Puppeteer._config['USE']['POSITION'] == True else None
             # print('position={}, avgPrice={}'.format(position[0]['currentQty'], position[0]['avgEntryPrice']))
             # ----------------------------------
             # ticker取得
             # ----------------------------------
-            ticker = Puppeteer._exchange.fetch_ticker(
+            ticker = Puppeteer._bitmex.ticker(
                     symbol=Puppeteer._config['SYMBOL']                      # シンボル
                 ) if Puppeteer._config['USE']['TICKER'] == True else None
             # print('last={}'.format(ticker['last']))
             # ----------------------------------
             # 板情報取得
             # ----------------------------------
-            orderbook = Puppeteer._exchange.fetch_order_book(
+            orderbook = Puppeteer._bitmex.orderbook(
                     symbol=Puppeteer._config['SYMBOL'],                     # シンボル
                     limit=Puppeteer._config['ORDERBOOK']['LIMIT']           # 取得件数(未指定:100、MAX:500)
                 ) if Puppeteer._config['USE']['ORDERBOOK'] == True else None
@@ -281,84 +280,6 @@ if __name__ == '__main__':
             else:
                 time.sleep(1)   # RUN時間が想定よりも長くかかってしまったため、すぐに次の処理に繊維する。
                 Puppeteer._logger.warning('elapsed_time={} over interval time={}'.format(elapsed_time, interval))
-
-    # ======================================
-    # ccxtのfetch_ohlcv問題に対応するローカル関数
-    #  partial問題については、
-    #   https://note.mu/nagi7692/n/n5a52e0fa8c28
-    #  の記事を参考にした
-    #  また、結構な確率でOHLCデータがNoneになってくることがある。
-    # ======================================
-    def fetch_ohlcv(bitmex, symbol, timeframe='1m', since=None, limit=None, params={}):
-        # timeframe1期間あたりの秒数
-        period = {'1m': 1 * 60, '5m': 5 * 60, '1h': 60 * 60, '1d': 24 * 60 * 60}
-    
-        if bitmex is None:
-            return None
-        if timeframe not in period.keys():
-            return None
-    
-        # 未確定の最新時間足のtimestampを取得(ミリ秒)
-        now = datetime.utcnow()
-        unixtime = calendar.timegm(now.utctimetuple())
-        current_timestamp = (unixtime - (unixtime % period[timeframe]) + period[timeframe]) * 1000
-
-        # for DEBUG
-        # print('current_timestamp={} : {}'.format(current_timestamp, datetime.fromtimestamp(current_timestamp / 1000)))
-    
-        # partialフラグ
-        is_partial = True
-        if 'partial' in params.keys():
-            is_partial = params['partial']
-    
-        # reverseフラグ
-        is_reverse = False
-        if 'reverse' in params.keys():
-            is_reverse = params['reverse']
-    
-        # 取得件数(未指定は100件)
-        fetch_count = 100 if limit is None else limit
-        count = fetch_count
-    
-        # 取得後に最新足を除外するため、1件多く取得
-        if is_partial == False:
-            count += 1
-        # 取得件数が足りないため、1件多く取得
-        if is_reverse == False:
-            count += 1
-        # 1page最大500件のため、オーバーしている場合、500件に調整
-        if count > 500:
-            count = 500
-    
-        # OHLCVデータ取得
-        ohlcvs = bitmex.fetch_ohlcv(symbol, timeframe, since, count, params)
-
-        # for DEBUG
-        # print('ohlcvs={}'.format(datetime.fromtimestamp(ohlcvs[-1][0] / 1000)))
-    
-        # partial=Falseの場合、未確定の最新足を除去する
-        if is_partial == False:
-            if is_reverse == True:
-                # 先頭行のtimestampが最新足と一致したら除去
-                if ohlcvs[0][0] == current_timestamp:
-                    # True(New->Old)なので、最初データを削除する
-                    ohlcvs = ohlcvs[1:]
-            else:
-                # 最終行のtimestampが最新足と一致したら除去
-                if ohlcvs[-1][0] == current_timestamp:
-                    # False(Old->New)なので、最後データを削除する
-                    ohlcvs = ohlcvs[:-1]
-    
-        # 取得件数をlimit以下になるように調整
-        while len(ohlcvs) > fetch_count:
-            if is_reverse == True:
-                # True(New->Old)なので、最後データから削除する, sinceが設定されているときは逆
-                ohlcvs = ohlcvs[:-1] if since is None else ohlcvs[1:]
-            else:
-                # False(Old->New)なので、最初データから削除する, sinceが設定されているときは逆
-                ohlcvs = ohlcvs[1:] if since is None else ohlcvs[:-1]
-    
-        return ohlcvs
 
     # ======================================
     # 実行開始

@@ -390,8 +390,7 @@ class BitMEX:
     # position
     # ======================================
     def position(self):
-        position = self._exchange.private_get_position()
-        return position[0] if position is not None else None
+        return self._exchange.private_get_position()
 
     # ======================================
     # ticker
