@@ -430,7 +430,7 @@ class BitMEX:
         # 未確定の最新時間足のtimestampを取得(ミリ秒)
         now = datetime.utcnow()
         unixtime = calendar.timegm(now.utctimetuple())
-        current_timestamp = (unixtime - (unixtime % period[timeframe]) + period[timeframe]) * 1000
+        current_timestamp = (unixtime - (unixtime % period[timeframe])) * 1000  # この値が一つ先の足のデータになっていたので、直近の一番新しい過去の足の時間に調整
 
         # for DEBUG
         # print('current_timestamp={} : {}'.format(current_timestamp, datetime.fromtimestamp(current_timestamp / 1000)))
@@ -470,7 +470,7 @@ class BitMEX:
             )
 
         # for DEBUG
-        # print('ohlcvs={}'.format(datetime.fromtimestamp(ohlcvs[-1][0] / 1000)))
+        # print('ohlcvs_timestamp ={} : {}'.format(ohlcvs[-1][0], datetime.fromtimestamp(ohlcvs[-1][0] / 1000)))
     
         # partial=Falseの場合、未確定の最新足を除去する
         if is_partial == False:
