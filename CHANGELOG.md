@@ -37,3 +37,8 @@
 ### v1.0.7
 
 - [Ta-Libのインストール](./docs/04_indicator.md)を追加
+
+### v1.0.8
+
+- ohlcv収集のpartial指定が機能していなかった件を修正
+
