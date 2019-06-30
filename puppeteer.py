@@ -168,6 +168,12 @@ class Puppeteer:
         # ------------------------------
         if 'MULTI_TIMEFRAME_CANDLE_SPAN_LIST' not in self._config:
             self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST'] = []
+
+        # ------------------------------
+        # マルチタイムフレーム ローソク足オブジェクト
+        # ------------------------------
+        self._candle = Candle(self) if len(self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST']) != 0 else None
+
         # ----------------------------------
         # ストラテジのロードと生成
         # ----------------------------------
@@ -197,7 +203,6 @@ if __name__ == '__main__':
         # 資産状況通知
         balance = Balance(puppeteer) if puppeteer._config['USE_SEND_BALANCE'] else None
         heartbeat = Heartbeat(puppeteer) if puppeteer._config['USE_WEBSOCKET'] else None
-        candle = Candle(puppeteer) if len(puppeteer._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST']) != 0 else None
         while True:
             try:
                 run(Puppeteer=puppeteer)

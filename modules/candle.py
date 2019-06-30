@@ -72,6 +72,11 @@ class Candle:
         # print(self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST'])
 
         # -------------------------------------------------------
+        # Threadのロック用オブジェクト
+        # -------------------------------------------------------
+        self._lock = threading.Lock()
+
+        # -------------------------------------------------------
         # マルチタイムフレーム ローソク足
         # タイムフレーム（設定可能: 1m, 3m, 5m, 10m, 15m, 30m, 1h, 2h, 3h, 4h, 6h, 12h, 1d）
         # -------------------------------------------------------
@@ -97,6 +102,39 @@ class Candle:
     # ===========================================================
     def __del__(self):
         self._candle_thread.join(timeout=3) # この値が妥当かどうか検討する
+
+    # ===========================================================
+    # candle
+    # ===========================================================
+    def candle(self, span):
+        self.__thread_lock()
+        _candle = self._candle[span][:]   # コピー
+        self.__thread_unlock()
+
+        return _candle
+
+    # ===========================================================
+    # Lock取得
+    # ===========================================================
+    def __thread_lock(self):
+        _count = 0
+        while self._lock.acquire(blocking=True, timeout=1) == False :
+            _count += 1
+            if _count > 3:
+                self._logger.error('lock acquire: timeout')
+                return False
+        return True
+
+    # ===========================================================
+    # Lock解放
+    # ===========================================================
+    def __thread_unlock(self):
+        try:
+            self._lock.release()
+        except Exception as e:
+            self._logger.error('lock release: {}'.format(e))
+            return False
+        return True
 
     # ==========================================================
     # ローソク足取得(ccxt)
@@ -251,6 +289,9 @@ class Candle:
             # 開始
             start = time.time()
 
+            # Lock
+            self.__thread_lock()
+
             try:
                 # ローソク足取得
                 self.__get_candle()
@@ -258,6 +299,9 @@ class Candle:
                 self._logger.error('multi timeframe candle thread Exception {}'.format(e))
             finally:
                 pass
+
+            # unLock
+            self.__thread_unlock()
 
             time.sleep(3)
 
