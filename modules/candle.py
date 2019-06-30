@@ -47,26 +47,36 @@ class Candle:
         # -------------------------------------------------------
         # マルチタイムフレーム で定義されたローソク足に基準ローソク足が設定されていなかったら　1m, 5m, 1h, 1d　を設定する
         # -------------------------------------------------------
+        # 1d
         if '1d' in self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST']:
             self.__max_loop_time = 24 * 60 * 60  # 24時間
+        # 1h
         for h in ['2h', '3h', '4h', '6h', '12h']:
             if '1h' not in self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST'] and h in self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST']:
                 # 2h, 3h, 4h, 6h, 12hが定義されていて、1hが未定義
                 self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST'].insert(0, '1h')
                 self.__max_loop_time = 1 * 60 * 60  # 1時間
                 break
+        if '1h' in self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST']:
+            self.__max_loop_time = 1 * 60 * 60  # 1時間
+        # 5m
         for m5 in ['10m', '15m', '30m']:
             if '5m' not in self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST'] and m5 in self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST']:
                 # 10m, 15m, 30mが定義されていて、5mが未定義
                 self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST'].insert(0, '5m')
                 self.__max_loop_time = 5 * 60  # 5分
                 break
+        if '5m' in self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST']:
+            self.__max_loop_time = 5 * 60  # 5分
+        # 1m
         for m1 in ['3m']:
             if '1m' not in self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST'] and m1 in self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST']:
                 # 3mが定義されていて、1mが未定義
                 self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST'].insert(0, '1m')
                 self.__max_loop_time = 1 * 60  # 1分
                 break
+        if '1m' in self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST']:
+            self.__max_loop_time = 1 * 60  # 1分
 
         # for DEBUG
         # print(self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST'])
