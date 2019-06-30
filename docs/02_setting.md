@@ -126,6 +126,10 @@ Puppetはクラス生成時に、引数としてPuppeteer本体オブジェク�
         "LIMIT" : null
     },
 
+    "//" : "マルチタイムフレームのローソク足を使用するかどうかを指定",
+    "//" : "設定値： 1m, 3m, 5m, 10m, 15m, 30m, 1h, 2h, 3h, 4h, 6h, 12h, 1d",
+    "MULTI_TIMEFRAME_CANDLE_SPAN_LIST" : [],
+
     "//" : "websocketを使用するかどうかを指定",
     "USE_WEBSOCKET" : false,
 
@@ -169,6 +173,9 @@ Puppetはクラス生成時に、引数としてPuppeteer本体オブジェク�
   TIMEFRAMEの設定は 1m, 5m, 1h, 1dの4つです。
 
   - ORDERBOOK : 板情報を取得する設定です。
+
+  - MULTI_TIMEFRAME_CANDLE_SPAN_LIST : マルチタイムフレームのローソク足を使用するかどうかを指定。   
+  設定値： 1m, 3m, 5m, 10m, 15m, 30m, 1h, 2h, 3h, 4h, 6h, 12h, 1d
 
   - USE_WEBSOCKET : websocketを使用するかどうかを設定します。
 

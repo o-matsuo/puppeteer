@@ -18,6 +18,8 @@ import pandas as pd
 # ==============================================================
 class Candle:
 
+    __DIFF_TIME = 5     # 5秒
+
     # ==========================================================
     # 初期化
     #   param:
@@ -31,20 +33,56 @@ class Candle:
         self._bitmex = Puppeteer._bitmex        # ccxt.bimexラッパーオブジェクト
         self._discord = Puppeteer._discord      # discord
 
-        # for DEBUG
-        self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST'] = ['5m', '15m']
-
         # -------------------------------------------------------
         # timezone
         # -------------------------------------------------------
         self._tz = tz.utc
 
         # -------------------------------------------------------
+        # 最大ロープ時間
+        # period = {'1m': 1 * 60, '5m': 5 * 60, '1h': 60 * 60, '1d': 24 * 60 * 60}
+        # -------------------------------------------------------
+        self.__max_loop_time = 24 * 60 * 60     # MAX
+
+        # -------------------------------------------------------
+        # マルチタイムフレーム で定義されたローソク足に基準ローソク足が設定されていなかったら　1m, 5m, 1h, 1d　を設定する
+        # -------------------------------------------------------
+        if '1d' in self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST']:
+            self.__max_loop_time = 24 * 60 * 60  # 24時間
+        for h in ['2h', '3h', '4h', '6h', '12h']:
+            if '1h' not in self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST'] and h in self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST']:
+                # 2h, 3h, 4h, 6h, 12hが定義されていて、1hが未定義
+                self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST'].insert(0, '1h')
+                self.__max_loop_time = 1 * 60 * 60  # 1時間
+                break
+        for m5 in ['10m', '15m', '30m']:
+            if '5m' not in self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST'] and m5 in self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST']:
+                # 10m, 15m, 30mが定義されていて、5mが未定義
+                self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST'].insert(0, '5m')
+                self.__max_loop_time = 5 * 60  # 5分
+                break
+        for m1 in ['3m']:
+            if '1m' not in self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST'] and m1 in self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST']:
+                # 3mが定義されていて、1mが未定義
+                self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST'].insert(0, '1m')
+                self.__max_loop_time = 1 * 60  # 1分
+                break
+
+        # for DEBUG
+        # print(self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST'])
+
+        # -------------------------------------------------------
         # マルチタイムフレーム ローソク足
+        # タイムフレーム（設定可能: 1m, 3m, 5m, 10m, 15m, 30m, 1h, 2h, 3h, 4h, 6h, 12h, 1d）
         # -------------------------------------------------------
         self._candle = {}
         for span in self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST']:
             self._candle[span] = None
+
+        # -------------------------------------------------------
+        # 起動時に初回ロード
+        # -------------------------------------------------------
+        self.__get_candle()
 
         # -------------------------------------------------------
         # マルチタイムフレーム ローソク足 スレッド
@@ -74,11 +112,11 @@ class Candle:
         candle = self._bitmex.ohlcv(
                 symbol=self._config['SYMBOL'],  # シンボル
                 timeframe=resolution,           # timeframe= 1m 5m 1h 1d
-                since=None,                     # データ取得開始時刻(Unix Timeミリ秒)
-                limit=499,                      # 取得件数(未指定:100、MAX:500)
+                since=self._config['CANDLE']['SINCE'],              # データ取得開始時刻(Unix Timeミリ秒)
+                limit=self._config['CANDLE']['LIMIT'],              # 取得件数(未指定:100、MAX:500)
                 params={
-                    'reverse': False,           # True(New->Old)、False(Old->New)　未指定時はFlase (注意：sineceを指定せずに、このフラグをTrueにすると最古のデータは2016年頃のデータが取れる)
-                    'partial': False            # True(最新の未確定足を含む)、False(含まない)　未指定はTrue　（注意：まだバグっているのか、Falseでも最新足が含まれる）
+                    'reverse': self._config['CANDLE']['REVERSE'],   # True(New->Old)、False(Old->New)　未指定時はFlase (注意：sineceを指定せずに、このフラグをTrueにすると最古のデータは2016年頃のデータが取れる)
+                    'partial': self._config['CANDLE']['PARTIAL']    # True(最新の未確定足を含む)、False(含まない)　未指定はTrue　（注意：まだバグっているのか、Falseでも最新足が含まれる）
                 }
             )
         # -----------------------------------------------
@@ -168,6 +206,24 @@ class Candle:
         return df
 
     # ==========================================================
+    # get candle
+    # ==========================================================
+    def __get_candle(self):
+        # 1m, 3m, 5m, 10m, 15m, 30m, 1h, 2h, 3h, 4h, 6h, 12h, 1d
+        for resolution in self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST']:
+            if resolution in ['1m', '5m', '1h', '1d']:
+                self._candle[resolution] = self.__fetch_candle(resolution)
+            elif resolution in ['3m']:
+                self._candle[resolution] = self.__change_candleDF(self._candle['1m'], resolution)
+            elif resolution in ['10m', '15m', '30m']:
+                self._candle[resolution] = self.__change_candleDF(self._candle['5m'], resolution)
+            elif resolution in ['2h', '3h', '4h', '6h', '12h']:
+                self._candle[resolution] = self.__change_candleDF(self._candle['1h'], resolution)
+            time.sleep(0.1)
+            # for DEBUG
+            # print(self._candle[resolution].tail(3))
+
+    # ==========================================================
     # run
     # ==========================================================
     def __run(self, args):
@@ -176,10 +232,10 @@ class Candle:
         # 毎時毎分0秒の5秒前までスリープしていることにする
         # -------------------------------------------------------
         now_sec = dt.now(self._tz).second
-        if now_sec >= 55:
+        if now_sec >= (self.__max_loop_time - Candle.__DIFF_TIME):
             pass
         else:
-            time.sleep(55 - now_sec)
+            time.sleep(self.__max_loop_time - Candle.__DIFF_TIME - now_sec)
 
         # -------------------------------------------------------
         # 処理ループ（exit用のフラグを儲けるか？）
@@ -196,20 +252,8 @@ class Candle:
             start = time.time()
 
             try:
-                # 1m, 3m, 5m, 10m, 15m, 30m, 1h, 2h, 3h, 4h, 6h, 12h
-                for resolution in self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST']:
-                    if resolution in ['1m', '5m', '1h']:
-                        self._candle[resolution] = self.__fetch_candle(resolution)
-                    elif resolution in ['3m']:
-                        self._candle[resolution] = self.__change_candleDF(self._candle['1m'], resolution)
-                    elif resolution in ['10m', '15m', '30m']:
-                        self._candle[resolution] = self.__change_candleDF(self._candle['5m'], resolution)
-                    elif resolution in ['2h', '3h', '4h', '6h', '12h']:
-                        self._candle[resolution] = self.__change_candleDF(self._candle['1h'], resolution)
-                    time.sleep(0.1)
-                    # for DEBUG
-                    print(self._candle[resolution].tail(3))
-
+                # ローソク足取得
+                self.__get_candle()
             except Exception as e:
                 self._logger.error('multi timeframe candle thread Exception {}'.format(e))
             finally:
@@ -224,14 +268,14 @@ class Candle:
             # ---------------------------------------------------
             # 時間調整
             # ---------------------------------------------------
-            if elapsed_time >= 60:
+            if elapsed_time >= self.__max_loop_time:
                 # それほど時間を消費することはないと思うが、念のため
                 self._logger.warning('multi timeframe candle thread: use time {}'.format(elapsed_time))
             else:
                 # 毎時毎分0秒の5秒前までスリープしていることにする
                 now_sec = dt.now(self._tz).second
-                if now_sec >= 55:
+                if now_sec >= (self.__max_loop_time - Candle.__DIFF_TIME):
                     pass
                 else:
-                    time.sleep(55 - now_sec)
+                    time.sleep(self.__max_loop_time - Candle.__DIFF_TIME - now_sec)
 

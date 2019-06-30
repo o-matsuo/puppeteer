@@ -27,6 +27,7 @@ from exchanges.websocket.inmemorydb_bitmex_websocket import BitMEXWebsocket
 from modules.discord import Discord           # Discordクラス
 from modules.balance import Balance           # Balanceクラス  
 from modules.heartbeat import Heartbeat       # Heartbeatクラス
+from modules.candle import Candle             # Candleクラス
 
 # ==========================================
 # python pupeteer <実行ファイルのフルパス> <実行定義JSONファイルのフルパス>
@@ -162,6 +163,11 @@ class Puppeteer:
         # ------------------------------
         if 'USE_SEND_BALANCE' not in self._config:
             self._config['USE_SEND_BALANCE'] = False
+        # ------------------------------
+        # マルチタイムフレームを使うかどうか
+        # ------------------------------
+        if 'MULTI_TIMEFRAME_CANDLE_SPAN_LIST' not in self._config:
+            self._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST'] = []
         # ----------------------------------
         # ストラテジのロードと生成
         # ----------------------------------
@@ -191,6 +197,7 @@ if __name__ == '__main__':
         # 資産状況通知
         balance = Balance(puppeteer) if puppeteer._config['USE_SEND_BALANCE'] else None
         heartbeat = Heartbeat(puppeteer) if puppeteer._config['USE_WEBSOCKET'] else None
+        candle = Candle(puppeteer) if len(puppeteer._config['MULTI_TIMEFRAME_CANDLE_SPAN_LIST']) != 0 else None
         while True:
             try:
                 run(Puppeteer=puppeteer)

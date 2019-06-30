@@ -152,6 +152,10 @@ ma.json
         "LIMIT" : null
     },
 
+    "//" : "マルチタイムフレームのローソク足を使用するかどうかを指定",
+    "//" : "設定値： 1m, 3m, 5m, 10m, 15m, 30m, 1h, 2h, 3h, 4h, 6h, 12h, 1d",
+    "MULTI_TIMEFRAME_CANDLE_SPAN_LIST" : [],
+
     "//" : "websocketを使用するかどうかを指定",
     "USE_WEBSOCKET" : false,
 
