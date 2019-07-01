@@ -272,6 +272,47 @@ class Candle:
             # print(self._candle[resolution].tail(3))
 
     # ==========================================================
+    # get_wait_time
+    #   待ち時間を計算する
+    #   params:
+    #       timeframe: 1分、5分、1時間、1日
+    #       diff:      あまりに使う時間（5秒前には処理に入ることにする）
+    # ==========================================================
+    def get_wait_time(self, timeframe=60, diff=5):
+        now_dt = dt.now(self._tz)
+        now_sec = now_dt.second
+        now_min = now_dt.minute
+        now_hour = now_dt.hour
+
+        # for DEBUG
+        # print('{}:{}:{}'.format(now_hour, now_min, now_sec))
+
+        if timeframe == 1 * 60:
+            # 1分
+            if now_sec >= (timeframe - diff):
+                return 0
+            else:
+                return timeframe - diff - now_sec
+        elif timeframe == 5 * 60:
+            # 5分
+            if now_sec >= ((5 - now_min % 5) * 60 - diff):
+                return 0
+            else:
+                return (5 - now_min % 5) * 60 - diff - now_sec
+        elif timeframe == 1 * 60 * 60:
+            # 1時間
+            if now_sec >= ((60 - now_min) * 60 - diff):
+                return 0
+            else:
+                return (60 - now_min) * 60 - diff - now_sec
+        elif timeframe == 24 * 60 * 60:
+            # 1日
+            if now_sec >= ((24 - now_hour) * 60 * 60 - now_min * 60 - diff):
+                return 0
+            else:
+                return (24 - now_hour) * 60 * 60 - now_min * 60 - diff - now_sec
+
+    # ==========================================================
     # run
     # ==========================================================
     def __run(self, args):
@@ -279,11 +320,9 @@ class Candle:
         # -------------------------------------------------------
         # 毎時毎分0秒の5秒前までスリープしていることにする
         # -------------------------------------------------------
-        now_sec = dt.now(self._tz).second
-        if now_sec >= (self.__max_loop_time - Candle.__DIFF_TIME):
-            pass
-        else:
-            time.sleep(self.__max_loop_time - Candle.__DIFF_TIME - now_sec)
+        sec = self.get_wait_time(self.__max_loop_time, Candle.__DIFF_TIME)
+        if sec > 0:
+            time.sleep(sec)
 
         # -------------------------------------------------------
         # 処理ループ（exit用のフラグを儲けるか？）
@@ -327,9 +366,7 @@ class Candle:
                 self._logger.warning('multi timeframe candle thread: use time {}'.format(elapsed_time))
             else:
                 # 毎時毎分0秒の5秒前までスリープしていることにする
-                now_sec = dt.now(self._tz).second
-                if now_sec >= (self.__max_loop_time - Candle.__DIFF_TIME):
-                    pass
-                else:
-                    time.sleep(self.__max_loop_time - Candle.__DIFF_TIME - now_sec)
+                sec = self.get_wait_time(self.__max_loop_time, Candle.__DIFF_TIME)
+                if sec > 0:
+                    time.sleep(sec)
 
