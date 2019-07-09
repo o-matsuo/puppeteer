@@ -1,0 +1,85 @@
+{
+    "//" : "===============================================",
+    "//" : " システムで利用",
+    "//" : "===============================================",
+    "//" : "取引所のapiKey, secretを設定します",
+    "APIKEY" : "YOUR_APIKEY",
+    "SECRET" : "YOUR_SECRET",
+
+    "//" : "bitmex取引所で対応する通貨ペア等を記述",
+    "SYMBOL" : "BTC/USD",
+    "INFO_SYMBOL" : "XBTUSD",
+    "COIN_BASE" : "BTC",
+    "COIN_QUOTE" : "USD",
+    "//" : "bitmex取引所の価格の最小幅(0.5ドル)",
+    "PRICE_UNIT" : 0.5,
+
+    "//" : "TestNetを使うか？(使う: true, 使わない: false)",
+    "USE_TESTNET" : true,
+
+    "//" : "ticker, orderbook, position, balance, candle のどれを利用するかを指定する。Falseを指定した場合はそのデータは取得しない",
+    "USE" : {
+        "TICKER" : true,
+        "ORDERBOOK" : true,
+        "POSITION" : true,
+        "BALANCE" : true,
+        "CANDLE" : true
+    },
+
+    "//" : "ローソク足の収集定義。",
+    "CANDLE" : {
+        "//" : "ローソク足の足幅を設定する。設定値= 1m, 5m, 1h, 1d",
+        "TIMEFRAME" : "1h",
+        "//" : "データ取得開始時刻(UNIXTIME：1ミリ秒)、使用しない場合 もしくは自動の場合は null(None) を指定",
+        "SINCE" : null,
+        "//" : "取得件数(未指定:100、MAX:500)",
+        "LIMIT" : null,
+        "//" : "True(New->Old)、False(Old->New)　未指定時はFlase",
+        "REVERSE" : false,
+        "//" : "True(最新の未確定足を含む)、False(含まない)　未指定はTrue",
+        "PARTIAL" : true
+    },
+
+    "//" : "板情報の収集定義。",
+    "ORDERBOOK" : {
+        "//" : "取得件数(未指定:25、MAX:取引所による？)",
+        "LIMIT" : null
+    },
+
+    "//" : "マルチタイムフレームのローソク足を使用するかどうかを指定",
+    "//" : "設定値： 1m, 3m, 5m, 10m, 15m, 30m, 1h, 2h, 3h, 4h, 6h, 12h, 1d",
+    "MULTI_TIMEFRAME_CANDLE_SPAN_LIST" : [],
+
+    "//" : "websocketを使用するかどうかを指定",
+    "USE_WEBSOCKET" : false,
+
+    "//" : "ログレベルを指定。（'CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'）",
+    "LOG_LEVEL" : "INFO",
+
+    "//" : "インターバル（botの実行周期）を秒で設定",
+    "INTERVAL" :60,
+
+    "//" : "discord通知用URL",
+    "DISCORD_WEBHOOK_URL" : "",
+
+    "//" : "資産状況通知をするか",
+    "USE_SEND_BALANCE" : false,
+
+    "//" : "===============================================",
+    "//" : " ユーザで自由に定義",
+    "//" : "===============================================",
+    "//" : "保有資産(ウォレット残高)の何倍のロットで発注するかを指定（レバレッジ）（単位：倍率 実数）",
+    "//" : " 保有資産(ウォレット残高)が1BTCあった場合、0.01BTC分のロット数(ドル)で１つの注文を出す。",
+    "//" : " ORDERS_NUMが2以上で設定されていたら、ORDERS_NUM個の発注のそれぞれがこのLEVERAGE分のロットで発注される",
+    "LEVERAGE" : 0.01,
+    "//" : "保持ポジション(currentQty)で許容する最大レバレッジ（単位：倍率 実数）",
+    "MAX_LEVERAGE" : 10,
+
+    "//" : "===============================================",
+    "//" : " ドテン設定",
+    "//" : "===============================================",
+    "//" : "RangeMean計算数（単位：整数）",
+    "RANGE_MEAN_NUM" : 18,
+    "//" : "ドテンK値（単位：実数）",
+    "DOTEN_K" : 1.6
+}
