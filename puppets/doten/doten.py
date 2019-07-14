@@ -41,52 +41,60 @@ class Puppet(Puppeteer):
         # --------------------------
 
         # ------------------------------------------------------
-        # 最終価格を取得
-        # ------------------------------------------------------
-        last_price = ticker['last']
-        # for DEBUG
-        #self._logger.info('tick:{}'.format(ticker['last']))
-
-        # ------------------------------------------------------
-        # orderbookから最新のbid/askを取得する
-        # ------------------------------------------------------
-        bid = orderbook['bids'][0][0]
-        ask = orderbook['asks'][0][0]
-        # 値チェック
-        if bid == 0 or ask == 0 or bid == None or ask == None :
-            self._logger.error('orderbook error: bid={}, ask={}'.format(bid, ask))
-            return
-        # for DEBUG
-        #self._logger.info('bid:{}, ask:{}'.format(bid, ask))
-
-        # ------------------------------------------------------
-        # ポジションサイズ、参入価格
+        # ポジションサイズ
         # ------------------------------------------------------
         pos_qty = position[0]['currentQty'] if len(position) != 0 else 0
-        avg_price = position[0]['avgEntryPrice'] if len(position) != 0 else 0
         # for DEBUG
-        #self._logger.info('pos_qty:{}, avg_price:{}'.format(pos_qty, avg_price))        
+        #self._logger.info('pos_qty:{}'.format(pos_qty))        
 
-        # ------------------------------------------------------
-        # 資産
-        # ------------------------------------------------------
-        # for DEBUG
-        #self._logger.info('balance[walletBalance]={}'.format(balance['info'][0]['walletBalance'] * 0.00000001))
-        
         # ------------------------------------------------------
         # ローソク足
         # ------------------------------------------------------
         df = self.__get_candleDF(candle)
-        # for DEBUG
-        #self._logger.info('candle.tail(5):{}'.format(df.tail(5)))
 
         range_mean = self.__calc_range_mean(df[:-1], self._config['RANGE_MEAN_NUM'])    # 直近の足は未確定足だから計算に渡さない
-        # for DEBUG
-        #self._logger.info('range mean: {}'.format(range_mean))
 
         doten = self.__calc_doten(df.iloc[-1], range_mean, self._config['DOTEN_K'])     # 直近の足からopen, high, lowを取得する
         # for DEBUG
-        self._logger.info('doten: {}'.format(doten))
+        #self._logger.info('doten: {}'.format(doten))
+
+        # ------------------------------------------------------
+        # 売買
+        # ------------------------------------------------------
+        if pos_qty == 0:
+            # --------------------------------------------------
+            # position = 0
+            # --------------------------------------------------
+            if doten == 'buy':
+                # ----------------------------------------------
+                # 買い
+                # ----------------------------------------------
+                self.__market_order('buy', self._config['LOT'])
+            elif doten == 'sell':
+                # ----------------------------------------------
+                # 売り
+                # ----------------------------------------------
+                self.__market_order('sell', self._config['LOT'])
+
+        elif pos_qty > 0:
+            # --------------------------------------------------
+            # position > 0
+            # --------------------------------------------------
+            if doten == 'sell':
+                # ----------------------------------------------
+                # 売り
+                # ----------------------------------------------
+                self.__market_order('sell', self._config['LOT'] * 2)
+
+        elif pos_qty < 0:
+            # --------------------------------------------------
+            # position < 0
+            # --------------------------------------------------
+            if doten == 'buy':
+                # ----------------------------------------------
+                # 買い
+                # ----------------------------------------------
+                self.__market_order('buy', self._config['LOT'] * 2)
 
     # ==========================================================
     # ローソク足 DataFrame 取得
@@ -124,3 +132,30 @@ class Puppet(Puppeteer):
         elif last['low'] < (last['open'] - range_mean * k):
             ret = 'sell'
         return ret
+
+    # ==========================================================
+    # 成行注文
+    #   param:
+    #       side: buy or sell
+    #       size: orderロット数
+    #   return:
+    #       order
+    # ==========================================================
+    def __market_order(self, side, size):
+
+        order = None
+
+        try:
+            order = self._exchange.create_order(
+                self._config['SYMBOL'], 
+                type='market', 
+                side=side, 
+                amount=size
+            )
+            self._logger.debug('■ market order={}'.format(order))
+        except Exception as e:
+            self._logger.error('■ market order: exception={}'.format(e))
+            order = None
+
+        return order
+
