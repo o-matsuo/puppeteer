@@ -32,10 +32,8 @@ from puppeteer import Puppeteer
 
 # ==========================================
 # Puppet(傀儡) クラス
-#   param:
-#       puppeteer: Puppeteerオブジェクト
 # ==========================================
-class Puppet(Puppeteer):
+class Puppet:
 
     # ==========================================================
     # 初期化
