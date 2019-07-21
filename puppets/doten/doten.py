@@ -9,6 +9,7 @@ import pandas as pd
 
 from puppeteer import Puppeteer
 
+
 # ==========================================
 # Puppet(傀儡) クラス
 #   param:
@@ -21,11 +22,12 @@ class Puppet(Puppeteer):
     #   param:
     #       puppeteer: Puppeteerオブジェクト
     # ==========================================================
-    def __init__(self, Puppeteer):
-        self._exchange = Puppeteer._exchange    # 取引所オブジェクト(ccxt.bitmex)
-        self._logger = Puppeteer._logger        # logger
-        self._config = Puppeteer._config        # 定義ファイル
-        
+    def __init__(self, Puppeteer, args):
+        super().__init__(args)
+        self._exchange = Puppeteer._exchange  # 取引所オブジェクト(ccxt.bitmex)
+        self._logger = Puppeteer._logger  # logger
+        self._config = Puppeteer._config  # 定義ファイル
+
     # ==========================================================
     # 売買実行
     #   param:
@@ -43,20 +45,24 @@ class Puppet(Puppeteer):
         # ------------------------------------------------------
         # ポジションサイズ
         # ------------------------------------------------------
-        pos_qty = position[0]['currentQty'] if len(position) != 0 else 0
+        pos_qty = position[0]["currentQty"] if len(position) != 0 else 0
         # for DEBUG
-        #self._logger.info('pos_qty:{}'.format(pos_qty))        
+        # self._logger.info('pos_qty:{}'.format(pos_qty))
 
         # ------------------------------------------------------
         # ローソク足
         # ------------------------------------------------------
         df = self.__get_candleDF(candle)
 
-        range_mean = self.__calc_range_mean(df[:-1], self._config['RANGE_MEAN_NUM'])    # 直近の足は未確定足だから計算に渡さない
+        range_mean = self.__calc_range_mean(
+            df[:-1], self._config["RANGE_MEAN_NUM"]
+        )  # 直近の足は未確定足だから計算に渡さない
 
-        doten = self.__calc_doten(df.iloc[-1], range_mean, self._config['DOTEN_K'])     # 直近の足からopen, high, lowを取得する
+        doten = self.__calc_doten(
+            df.iloc[-1], range_mean, self._config["DOTEN_K"]
+        )  # 直近の足からopen, high, lowを取得する
         # for DEBUG
-        #self._logger.info('doten: {}'.format(doten))
+        # self._logger.info('doten: {}'.format(doten))
 
         # ------------------------------------------------------
         # 売買
@@ -65,36 +71,36 @@ class Puppet(Puppeteer):
             # --------------------------------------------------
             # position = 0
             # --------------------------------------------------
-            if doten == 'buy':
+            if doten == "buy":
                 # ----------------------------------------------
                 # 買い
                 # ----------------------------------------------
-                self.__market_order('buy', self._config['LOT'])
-            elif doten == 'sell':
+                self.__market_order("buy", self._config["LOT"])
+            elif doten == "sell":
                 # ----------------------------------------------
                 # 売り
                 # ----------------------------------------------
-                self.__market_order('sell', self._config['LOT'])
+                self.__market_order("sell", self._config["LOT"])
 
         elif pos_qty > 0:
             # --------------------------------------------------
             # position > 0
             # --------------------------------------------------
-            if doten == 'sell':
+            if doten == "sell":
                 # ----------------------------------------------
                 # 売り
                 # ----------------------------------------------
-                self.__market_order('sell', self._config['LOT'] * 2)
+                self.__market_order("sell", self._config["LOT"] * 2)
 
         elif pos_qty < 0:
             # --------------------------------------------------
             # position < 0
             # --------------------------------------------------
-            if doten == 'buy':
+            if doten == "buy":
                 # ----------------------------------------------
                 # 買い
                 # ----------------------------------------------
-                self.__market_order('buy', self._config['LOT'] * 2)
+                self.__market_order("buy", self._config["LOT"] * 2)
 
     # ==========================================================
     # ローソク足 DataFrame 取得
@@ -103,13 +109,16 @@ class Puppet(Puppeteer):
         # -----------------------------------------------
         # Pandasのデータフレームに
         # -----------------------------------------------
-        df = pd.DataFrame(candle,
-                columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
+        df = pd.DataFrame(
+            candle, columns=["timestamp", "open", "high", "low", "close", "volume"]
+        )
         # -----------------------------------------------
         # 日時データをDataFrameのインデックスにする
         # -----------------------------------------------
-        df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms', utc=True, infer_datetime_format=True) # UNIX時間(ミリ秒)を変換, UTC=TrueでタイムゾーンがUTCに設定される, infer_datetime_format=Trueは高速化に寄与するとのこと。
-        df = df.set_index('timestamp')
+        df["timestamp"] = pd.to_datetime(
+            df["timestamp"], unit="ms", utc=True, infer_datetime_format=True
+        )  # UNIX時間(ミリ秒)を変換, UTC=TrueでタイムゾーンがUTCに設定される, infer_datetime_format=Trueは高速化に寄与するとのこと。
+        df = df.set_index("timestamp")
 
         return df
 
@@ -126,11 +135,11 @@ class Puppet(Puppeteer):
     # ドテン計算
     # ==========================================================
     def __calc_doten(self, last, range_mean, k):
-        ret = 'none'
-        if last['high'] > (last['open'] + range_mean * k):
-            ret = 'buy'
-        elif last['low'] < (last['open'] - range_mean * k):
-            ret = 'sell'
+        ret = "none"
+        if last["high"] > (last["open"] + range_mean * k):
+            ret = "buy"
+        elif last["low"] < (last["open"] - range_mean * k):
+            ret = "sell"
         return ret
 
     # ==========================================================
@@ -147,15 +156,11 @@ class Puppet(Puppeteer):
 
         try:
             order = self._exchange.create_order(
-                self._config['SYMBOL'], 
-                type='market', 
-                side=side, 
-                amount=size
+                self._config["SYMBOL"], type="market", side=side, amount=size
             )
-            self._logger.debug('■ market order={}'.format(order))
+            self._logger.debug("■ market order={}".format(order))
         except Exception as e:
-            self._logger.error('■ market order: exception={}'.format(e))
+            self._logger.error("■ market order: exception={}".format(e))
             order = None
 
         return order
-

@@ -6,6 +6,7 @@ import datetime
 
 from puppeteer import Puppeteer
 
+
 # ==========================================
 # Puppet(傀儡) クラス
 #   param:
@@ -18,11 +19,12 @@ class Puppet(Puppeteer):
     #   param:
     #       puppeteer: Puppeteerオブジェクト
     # ==========================================================
-    def __init__(self, Puppeteer):
-        self._exchange = Puppeteer._exchange    # 取引所オブジェクト(ccxt.bitmex)
-        self._logger = Puppeteer._logger        # logger
-        self._config = Puppeteer._config        # 定義ファイル
-        
+    def __init__(self, Puppeteer, args):
+        super().__init__(args)
+        self._exchange = Puppeteer._exchange  # 取引所オブジェクト(ccxt.bitmex)
+        self._logger = Puppeteer._logger  # logger
+        self._config = Puppeteer._config  # 定義ファイル
+
     # ==========================================================
     # 売買実行
     #   param:
@@ -46,32 +48,42 @@ class Puppet(Puppeteer):
         # ------------------------------------------------------
         # tick
         # ------------------------------------------------------
-        self._logger.info('tick:{}'.format(ticker['last']))
+        self._logger.info("tick:{}".format(ticker["last"]))
 
         # ------------------------------------------------------
         # orderbookから最新のbid/askを取得する
         # ------------------------------------------------------
-        bid = orderbook['bids'][0][0]
-        ask = orderbook['asks'][0][0]
+        bid = orderbook["bids"][0][0]
+        ask = orderbook["asks"][0][0]
         # 値チェック
-        if bid == 0 or ask == 0 or bid == None or ask == None :
-            self._logger.error('orderbook error: bid={}, ask={}'.format(bid, ask))
+        if bid == 0 or ask == 0 or bid == None or ask == None:
+            self._logger.error("orderbook error: bid={}, ask={}".format(bid, ask))
             return
-        self._logger.info('bid:{}, ask:{}'.format(bid, ask))
+        self._logger.info("bid:{}, ask:{}".format(bid, ask))
 
         # ------------------------------------------------------
         # ポジションサイズ、参入価格
         # ------------------------------------------------------
-        pos_qty = position[0]['currentQty'] if position[0]['currentQty'] is not None else 0
-        avg_price = position[0]['avgEntryPrice'] if position[0]['avgEntryPrice'] is not None else 0
-        self._logger.info('pos_qty:{}, avg_price:{}'.format(pos_qty, avg_price))        
+        pos_qty = (
+            position[0]["currentQty"] if position[0]["currentQty"] is not None else 0
+        )
+        avg_price = (
+            position[0]["avgEntryPrice"]
+            if position[0]["avgEntryPrice"] is not None
+            else 0
+        )
+        self._logger.info("pos_qty:{}, avg_price:{}".format(pos_qty, avg_price))
 
         # ------------------------------------------------------
         # 資産
         # ------------------------------------------------------
-        self._logger.info('balance[walletBalance]={}'.format(balance['info'][0]['walletBalance'] * 0.00000001))
-        
+        self._logger.info(
+            "balance[walletBalance]={}".format(
+                balance["info"][0]["walletBalance"] * 0.00000001
+            )
+        )
+
         # ------------------------------------------------------
         # ローソク足
         # ------------------------------------------------------
-        self._logger.info('candle[last]:{}'.format(candle[-1]))
+        self._logger.info("candle[last]:{}".format(candle[-1]))
