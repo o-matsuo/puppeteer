@@ -22,8 +22,7 @@ class Puppet(Puppeteer):
     #   param:
     #       puppeteer: Puppeteerオブジェクト
     # ==========================================================
-    def __init__(self, Puppeteer, args):
-        super().__init__(args)
+    def __init__(self, Puppeteer):
         self._exchange = Puppeteer._exchange  # 取引所オブジェクト(ccxt.bitmex)
         self._logger = Puppeteer._logger  # logger
         self._config = Puppeteer._config  # 定義ファイル
