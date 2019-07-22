@@ -12,39 +12,39 @@ import calendar
 # for logging
 import logging
 
+
 # ###############################################################
 # bitmex クラス
 # ###############################################################
 class BitMEX:
 
-    SYMBOL = 'BTC/USD'
-    __NAME = 'bitmex'       # 取引所名
+    SYMBOL = "BTC/USD"
+    __NAME = "bitmex"  # 取引所名
 
-    #==================================
+    # ==================================
     # 初期化
-    #==================================
-    def __init__(self, symbol=SYMBOL, apiKey=None, secret=None, logger=None, use_testnet=False):
+    # ==================================
+    def __init__(
+        self, symbol=SYMBOL, apiKey=None, secret=None, logger=None, use_testnet=False
+    ):
         # 取引所オブジェクト(ccxt.bitmex)
-        self._exchange = ccxt.bitmex({
-            'apiKey': apiKey,
-            'secret': secret
-        })
+        self._exchange = ccxt.bitmex({"apiKey": apiKey, "secret": secret})
         # TestNet利用有無
         if use_testnet == True:
             # for TESTNET
-            self._exchange.urls['api'] = self._exchange.urls['test']
+            self._exchange.urls["api"] = self._exchange.urls["test"]
 
         self._symbol = symbol
 
         self._logger = logger if logger is not None else logging.getLogger(__name__)
 
-        self._logger.info('class BitMEX initialized')
+        self._logger.info("class BitMEX initialized")
 
     # ===========================================================
     # デストラクタ
     # ===========================================================
     def __del__(self):
-        self._logger.info('class BitMEX deleted')
+        self._logger.info("class BitMEX deleted")
 
     # ##########################################################
     # インナー関数
@@ -60,9 +60,9 @@ class BitMEX:
         # 上記からerrorオブジェクトを取り出す
         ret = None
         try:
-            ret = eval('{}'.format(exception).replace(BitMEX.__NAME,''))
+            ret = eval("{}".format(exception).replace(BitMEX.__NAME, ""))
         except Exception as e:
-            ret = {'error': {'message': '{}'.format(e), 'name': 'BitMEX.__get_error'}}
+            ret = {"error": {"message": "{}".format(e), "name": "BitMEX.__get_error"}}
         return ret
 
     # ##########################################################
@@ -74,7 +74,7 @@ class BitMEX:
     #       price: avgEntryPrice
     # ==========================================================
     def ceil(self, price):
-        return math.ceil(price*2)/2
+        return math.ceil(price * 2) / 2
 
     # ==========================================================
     # 0.5刻みで切り下げ
@@ -82,7 +82,7 @@ class BitMEX:
     #       price: avgEntryPrice
     # ==========================================================
     def floor(self, price):
-        return math.floor(price*2)/2
+        return math.floor(price * 2) / 2
 
     # ==========================================================
     # 注文更新で使用する orderID, price, leavesQtyを注文から取得
@@ -92,9 +92,9 @@ class BitMEX:
     #       orderID, price, leavesQty
     # ==========================================================
     def get_amend_params(self, order):
-        orderID = order['id']
-        price = order['price']
-        leavesQty = order['info']['leavesQty']
+        orderID = order["id"]
+        price = order["price"]
+        leavesQty = order["info"]["leavesQty"]
         return orderID, price, leavesQty
 
     # ==========================================================
@@ -105,11 +105,11 @@ class BitMEX:
     #       orderID（複数ある場合は 'xxxx,yyyy,zzzz'）
     # ==========================================================
     def get_cancel_params(self, orders):
-        orderIDs = ''
+        orderIDs = ""
         for o in orders:
-            if orderIDs != '':
-                orderIDs += ','
-            orderIDs += o['id']
+            if orderIDs != "":
+                orderIDs += ","
+            orderIDs += o["id"]
         return orderIDs
 
     # ==========================================================
@@ -122,7 +122,7 @@ class BitMEX:
     def get_price_list(self, orders):
         prices = []
         for o in orders:
-            prices.append(o['price'])
+            prices.append(o["price"])
         return prices
 
     # ==========================================================
@@ -131,7 +131,9 @@ class BitMEX:
     #       clOrdID: 'limit_buy', 'limit_sell', 'settle_buy' or 'settle_sell' -> 'settle'だけで決済注文を検索しても良い
     # ==========================================================
     def find_orders(self, open_orders, clOrdID):
-        return [order for order in open_orders if 0 < order['info']['clOrdID'].find(clOrdID)]
+        return [
+            order for order in open_orders if 0 < order["info"]["clOrdID"].find(clOrdID)
+        ]
 
     # ##########################################################
     # ccxt関数ラッパー
@@ -149,9 +151,9 @@ class BitMEX:
 
         try:
             orders = self._exchange.fetch_open_orders(symbol)
-            self._logger.debug('■ open orders={}'.format(orders))
+            self._logger.debug("■ open orders={}".format(orders))
         except Exception as e:
-            self._logger.error('■ open orders: exception={}'.format(e))
+            self._logger.error("■ open orders: exception={}".format(e))
             orders = self.__get_error(e)
 
         return orders
@@ -170,23 +172,23 @@ class BitMEX:
         order = None
 
         # 注文に設定する「clOrdID」のID情報を作成・取得
-        order_id = 'kheir_' + str(round(time.time()))
+        order_id = "kheir_" + str(round(time.time()))
 
         try:
             order = self._exchange.create_order(
-                symbol=self._symbol, 
-                type='limit', 
-                side=side, 
-                amount=size, 
-                price=price, 
+                symbol=self._symbol,
+                type="limit",
+                side=side,
+                amount=size,
+                price=price,
                 params={
-                        'execInst':'ParticipateDoNotInitiate',
-                        'clOrdID':'{}_limit_{}'.format(order_id,side)
-                    }
+                    "execInst": "ParticipateDoNotInitiate",
+                    "clOrdID": "{}_limit_{}".format(order_id, side),
+                },
             )
-            self._logger.debug('■ limit order={}'.format(order))
+            self._logger.debug("■ limit order={}".format(order))
         except Exception as e:
-            self._logger.error('■ limit order: exception={}'.format(e))
+            self._logger.error("■ limit order: exception={}".format(e))
             order = self.__get_error(e)
 
         return order
@@ -204,21 +206,19 @@ class BitMEX:
         order = None
 
         # 注文に設定する「clOrdID」のID情報を作成・取得
-        order_id = 'kheir_' + str(round(time.time()))
+        order_id = "kheir_" + str(round(time.time()))
 
         try:
             order = self._exchange.create_order(
-                symbol=self._symbol, 
-                type='market', 
-                side=side, 
+                symbol=self._symbol,
+                type="market",
+                side=side,
                 amount=size,
-                params={
-                        'clOrdID':'{}_market_{}'.format(order_id,side)
-                    }
+                params={"clOrdID": "{}_market_{}".format(order_id, side)},
             )
-            self._logger.debug('■ market order={}'.format(order))
+            self._logger.debug("■ market order={}".format(order))
         except Exception as e:
-            self._logger.error('■ market order: exception={}'.format(e))
+            self._logger.error("■ market order: exception={}".format(e))
             order = self.__get_error(e)
 
         return order
@@ -237,23 +237,23 @@ class BitMEX:
         order = None
 
         # 注文に設定する「clOrdID」のID情報を作成・取得
-        order_id = 'kheir_' + str(round(time.time()))
+        order_id = "kheir_" + str(round(time.time()))
 
         try:
             order = self._exchange.create_order(
-                symbol=self._symbol, 
-                type='limit', 
-                side=side, 
-                amount=size, 
+                symbol=self._symbol,
+                type="limit",
+                side=side,
+                amount=size,
                 price=price,
                 params={
-                        'execInst':'ReduceOnly,ParticipateDoNotInitiate',
-                        'clOrdID':'{}_limit_settle_{}'.format(order_id,side)
-                    }
+                    "execInst": "ReduceOnly,ParticipateDoNotInitiate",
+                    "clOrdID": "{}_limit_settle_{}".format(order_id, side),
+                },
             )
-            self._logger.debug('■ limit settle order={}'.format(order))
+            self._logger.debug("■ limit settle order={}".format(order))
         except Exception as e:
-            self._logger.error('■ limit settle order: exception={}'.format(e))
+            self._logger.error("■ limit settle order: exception={}".format(e))
             order = self.__get_error(e)
 
         return order
@@ -271,22 +271,22 @@ class BitMEX:
         order = None
 
         # 注文に設定する「clOrdID」のID情報を作成・取得
-        order_id = 'kheir_' + str(round(time.time()))
+        order_id = "kheir_" + str(round(time.time()))
 
         try:
             order = self._exchange.create_order(
-                symbol=self._symbol, 
-                type='market', 
-                side=side, 
-                amount=size, 
+                symbol=self._symbol,
+                type="market",
+                side=side,
+                amount=size,
                 params={
-                        'execInst':'ReduceOnly',
-                        'clOrdID':'{}_market_settle_{}'.format(order_id,side)
-                    }
+                    "execInst": "ReduceOnly",
+                    "clOrdID": "{}_market_settle_{}".format(order_id, side),
+                },
             )
-            self._logger.debug('■ market settle order={}'.format(order))
+            self._logger.debug("■ market settle order={}".format(order))
         except Exception as e:
-            self._logger.error('■ market settle order: exception={}'.format(e))
+            self._logger.error("■ market settle order: exception={}".format(e))
             order = self.__get_error(e)
 
         return order
@@ -305,15 +305,15 @@ class BitMEX:
 
         try:
             order = self._exchange.privatePutOrder(options)
-            self._logger.debug('■ amend order={}'.format(order))
+            self._logger.debug("■ amend order={}".format(order))
         except Exception as e:
-            self._logger.error('■ amend order: exception={}'.format(e))
+            self._logger.error("■ amend order: exception={}".format(e))
             order = self.__get_error(e)
             # {"error":{"message":"Invalid orderID","name":"HTTPError"}} の場合
             # 変更するはずのIDが見つからない場合、ID情報を格納しているバッファが崩れている可能性がるので、本体に例外で通知する
-            if order['error']['message'] in ['Invalid orderID']:
+            if order["error"]["message"] in ["Invalid orderID"]:
                 raise Exception(order)
-        
+
         return order
 
     # ==========================================================
@@ -329,13 +329,13 @@ class BitMEX:
 
         try:
             order = self._exchange.privateDeleteOrder(options)
-            self._logger.debug('■ cancel order={}'.format(order))
+            self._logger.debug("■ cancel order={}".format(order))
         except Exception as e:
-            self._logger.error('■ cancel order: exception={}'.format(e))
+            self._logger.error("■ cancel order: exception={}".format(e))
             order = self.__get_error(e)
             # {"error":{"message":"Not Found","name":"HTTPError"}} の場合
             # キャンセルするはずのIDが見つからない場合、ID情報を格納しているバッファが崩れている可能性がるので、本体に例外で通知する
-            if order['error']['message'] in ['Not Found']:
+            if order["error"]["message"] in ["Not Found"]:
                 raise Exception(order)
 
         return order
@@ -353,9 +353,9 @@ class BitMEX:
 
         try:
             orders = self._exchange.privateDeleteOrderAll(options)
-            self._logger.debug('■ cancel orders={}'.format(orders))
+            self._logger.debug("■ cancel orders={}".format(orders))
         except Exception as e:
-            self._logger.error('■ cancel orders: exception={}'.format(e))
+            self._logger.error("■ cancel orders: exception={}".format(e))
             orders = self.__get_error(e)
 
         return orders
@@ -372,10 +372,10 @@ class BitMEX:
         orders = None
 
         try:
-            orders = self._exchange.privatePostOrderBulk({ 'orders': json.dumps(params) })
-            self._logger.debug('■ bulk orders={}'.format(orders))
+            orders = self._exchange.privatePostOrderBulk({"orders": json.dumps(params)})
+            self._logger.debug("■ bulk orders={}".format(orders))
         except Exception as e:
-            self._logger.error('■ bulk orders: exception={}'.format(e))
+            self._logger.error("■ bulk orders: exception={}".format(e))
             orders = self.__get_error(e)
 
         return orders
@@ -396,18 +396,15 @@ class BitMEX:
     # ticker
     # ======================================
     def ticker(self, symbol=SYMBOL):
-        return self._exchange.fetch_ticker(
-                symbol=symbol   # シンボル
-            )
+        return self._exchange.fetch_ticker(symbol=symbol)  # シンボル
 
     # ======================================
     # 板情報取得
     # ======================================
     def orderbook(self, symbol=SYMBOL, limit=100):
         return self._exchange.fetch_order_book(
-                symbol=symbol,  # シンボル
-                limit=limit     # 取得件数(未指定:100、MAX:500)
-            )
+            symbol=symbol, limit=limit  # シンボル  # 取得件数(未指定:100、MAX:500)
+        )
 
     # ======================================
     # ccxtのfetch_ohlcv問題に対応するローカル関数
@@ -415,40 +412,42 @@ class BitMEX:
     #   https://note.mu/nagi7692/n/n5a52e0fa8c28
     #  の記事を参考にした
     #  また、結構な確率でOHLCデータがNoneになってくることがある。
-    #  
+    #
     #  params:
     #       reverse: True(New->Old)、False(Old->New)　未指定時はFlase (注意：sineceを指定せずに、このフラグをTrueにすると最古のデータは2016年頃のデータが取れる)
     #       partial: True(最新の未確定足を含む)、False(含まない)　未指定はTrue　（注意：まだバグっているのか、Falseでも最新足が含まれる）
     # ======================================
-    def ohlcv(self, symbol=SYMBOL, timeframe='1m', since=None, limit=None, params={}):
+    def ohlcv(self, symbol=SYMBOL, timeframe="1m", since=None, limit=None, params={}):
         # timeframe1期間あたりの秒数
-        period = {'1m': 1 * 60, '5m': 5 * 60, '1h': 60 * 60, '1d': 24 * 60 * 60}
-    
+        period = {"1m": 1 * 60, "5m": 5 * 60, "1h": 60 * 60, "1d": 24 * 60 * 60}
+
         if timeframe not in period.keys():
             return None
-    
+
         # 未確定の最新時間足のtimestampを取得(ミリ秒)
         now = datetime.utcnow()
         unixtime = calendar.timegm(now.utctimetuple())
-        current_timestamp = (unixtime - (unixtime % period[timeframe])) * 1000  # この値が一つ先の足のデータになっていたので、直近の一番新しい過去の足の時間に調整
+        current_timestamp = (
+            unixtime - (unixtime % period[timeframe])
+        ) * 1000  # この値が一つ先の足のデータになっていたので、直近の一番新しい過去の足の時間に調整
 
         # for DEBUG
         # print('current_timestamp={} : {}'.format(current_timestamp, datetime.fromtimestamp(current_timestamp / 1000)))
-    
+
         # partialフラグ
         is_partial = True
-        if 'partial' in params.keys():
-            is_partial = params['partial']
-    
+        if "partial" in params.keys():
+            is_partial = params["partial"]
+
         # reverseフラグ
         is_reverse = False
-        if 'reverse' in params.keys():
-            is_reverse = params['reverse']
-    
+        if "reverse" in params.keys():
+            is_reverse = params["reverse"]
+
         # 取得件数(未指定は100件)
         fetch_count = 100 if limit is None else limit
         count = fetch_count
-    
+
         # 取得後に最新足を除外するため、1件多く取得
         if is_partial == False:
             count += 1
@@ -458,20 +457,16 @@ class BitMEX:
         # 1page最大500件のため、オーバーしている場合、500件に調整
         if count > 500:
             count = 500
-    
+
         # OHLCVデータ取得
         # 引数：symbol, timeframe='1m', since=None, limit=None, params={}
         ohlcvs = self._exchange.fetch_ohlcv(
-                symbol=symbol, 
-                timeframe=timeframe, 
-                since=since, 
-                limit=count, 
-                params=params
-            )
+            symbol=symbol, timeframe=timeframe, since=since, limit=count, params=params
+        )
 
         # for DEBUG
         # print('ohlcvs_timestamp ={} : {}'.format(ohlcvs[-1][0], datetime.fromtimestamp(ohlcvs[-1][0] / 1000)))
-    
+
         # partial=Falseの場合、未確定の最新足を除去する
         if is_partial == False:
             if is_reverse == True:
@@ -484,7 +479,7 @@ class BitMEX:
                 if ohlcvs[-1][0] == current_timestamp:
                     # False(Old->New)なので、最後データを削除する
                     ohlcvs = ohlcvs[:-1]
-    
+
         # 取得件数をlimit以下になるように調整
         while len(ohlcvs) > fetch_count:
             if is_reverse == True:
@@ -493,5 +488,5 @@ class BitMEX:
             else:
                 # False(Old->New)なので、最初データから削除する, sinceが設定されているときは逆
                 ohlcvs = ohlcvs[1:] if since is None else ohlcvs[:-1]
-    
+
         return ohlcvs

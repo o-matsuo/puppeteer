@@ -4,6 +4,7 @@
 # ==========================================
 import requests
 
+
 # ==========================================
 # Discord クラス
 #   param:
@@ -16,11 +17,11 @@ class Discord:
     #   param:
     #       URL: discord webhook url
     # ======================================
-    def __init__(self, discord_webhook_url=''):
+    def __init__(self, discord_webhook_url=""):
         # ----------------------------------
         # discord webhook url設定
         # ----------------------------------
-        self._discord_webhook_url = discord_webhook_url # discord通知用URL
+        self._discord_webhook_url = discord_webhook_url  # discord通知用URL
 
     # ======================================
     # 通知
@@ -29,14 +30,14 @@ class Discord:
     #       fileName: 画像ファイル
     # ======================================
     def send(self, message, fileName=None):
-        if '' != self._discord_webhook_url:
+        if "" != self._discord_webhook_url:
             data = {"content": " " + message + " "}
             if fileName == None:
                 r = requests.post(self._discord_webhook_url, data=data)
             else:
                 try:
                     file = {"imageFile": open(fileName, "rb")}
-                    r = requests.post(self._discord_webhook_url, data=data, files = file)
+                    r = requests.post(self._discord_webhook_url, data=data, files=file)
                 except:
                     r = requests.post(self._discord_webhook_url, data=data)
             if r.status_code == 404:
