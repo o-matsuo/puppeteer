@@ -4,6 +4,8 @@
 # ==========================================
 import datetime
 
+import pandas as pd
+
 from puppeteer import Puppeteer
 
 
@@ -56,6 +58,30 @@ class Puppet:
         # ここに処理を記述します
         # --------------------------
         # ------------------------------------------------------
+        # quotes
+        # ------------------------------------------------------
+        quote = self._ws.quotes()
+        self._logger.info("quote: {}".format(quote))
+
+        # ------------------------------------------------------
+        # trades
+        # ------------------------------------------------------
+        trade = self._ws.trades()
+        self._logger.info("trade: {}".format(trade))
+
+        # ------------------------------------------------------
+        # executions
+        # ------------------------------------------------------
+        execution = self._ws.executions()
+        self._logger.info("execution: {}".format(execution))
+
+        # ------------------------------------------------------
+        # ticker
+        # ------------------------------------------------------
+        tick = self._ws.ticker()
+        self._logger.info("tick: {}".format(tick))
+
+        # ------------------------------------------------------
         # orderbookから最新のbid/askを取得する
         # ------------------------------------------------------
         orderbook = self._ws.orderbook()
@@ -91,3 +117,13 @@ class Puppet:
         # 資産
         # ------------------------------------------------------
         self._logger.info("balance {}".format(self._ws.funds()))
+
+        # ------------------------------------------------------
+        # ローソク足
+        # ------------------------------------------------------
+        candle = self._ws.candle(1)
+        df = pd.DataFrame(candle, columns=["timestamp", "open", "high", "low", "close", "volume", "buy", "sell"])
+        df["timestamp"] = pd.to_datetime(df["timestamp"], unit="s", infer_datetime_format=True)
+        df = df.set_index("timestamp")
+        df.index = df.index.tz_localize(None)
+        self._logger.info((df.tail(10)))

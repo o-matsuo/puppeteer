@@ -301,21 +301,30 @@ class BitMEXWebsocket:
     # ===========================================================
     def quotes(self):
         """Get recent quotes."""
-        return self.data["quote"]
+        self.__thread_lock()
+        quote = self.data["quote"][:]
+        self.__thread_unlock()
+        return quote
 
     # ===========================================================
     # trades
     # ===========================================================
     def trades(self):
         """Get recent trades."""
-        return self.data["trade"]
+        self.__thread_lock()
+        trade = self.data["trade"][:]
+        self.__thread_unlock()
+        return trade
 
     # ===========================================================
     # executions
     # ===========================================================
     def executions(self):
         """Get recent executions."""
-        return self.data["execution"]
+        self.__thread_lock()
+        execution = self.data["execution"][:]
+        self.__thread_unlock()
+        return execution
 
     # ===========================================================
     # margin(funds), position, instrument は更新型
@@ -324,14 +333,20 @@ class BitMEXWebsocket:
     # ===========================================================
     def funds(self):
         """Get your margin details."""
-        return self.data["margin"]
+        self.__thread_lock()
+        margin = copy.copy(self.data["margin"])
+        self.__thread_unlock()
+        return margin
 
     # ===========================================================
     # position
     # ===========================================================
     def position(self):
         """ Get your position details."""
-        return self.data["position"]
+        self.__thread_lock()
+        pos = copy.copy(self.data["position"])
+        self.__thread_unlock()
+        return pos
 
     # ===========================================================
     # instrument
@@ -350,6 +365,7 @@ class BitMEXWebsocket:
     # ===========================================================
     def ticker(self):
         """Return a ticker object. Generated from quote and trade."""
+        self.__thread_lock()
         lastQuote = self.data["quote"][-1]
         lastTrade = self.data["trade"][-1]
         ticker = {
@@ -364,6 +380,7 @@ class BitMEXWebsocket:
 
         # The instrument has a tickSize. Use it to round values.
         instrument = self.data["instrument"]
+        self.__thread_unlock()
         return {
             k: round(float(v or 0), instrument["tickLog"]) for k, v in ticker.items()
         }
@@ -414,9 +431,13 @@ class BitMEXWebsocket:
     #       type: 0, 1  # 0: 未確定含まない, 1: 未確定含む
     # ===========================================================
     def candle(self, type=0):
+        self.__thread_lock()
         if type == 0:
-            return self._candle[:-1]
-        return self._candle
+            candle = self._candle[:-1]
+        else:
+            candle = self._candle[:]
+        self.__thread_unlock()
+        return candle
 
     # ==========================================================
     # ヘルパー関数
