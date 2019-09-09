@@ -19,6 +19,7 @@ import logging
 class BitMEX:
 
     SYMBOL = "BTC/USD"
+    INFO_SYMBOL = 'XBTUSD'
     __NAME = "bitmex"  # 取引所名
 
     # ==================================
@@ -172,7 +173,7 @@ class BitMEX:
         order = None
 
         # 注文に設定する「clOrdID」のID情報を作成・取得
-        order_id = "kheir_" + str(round(time.time()))
+        order_id = str(time.time() * 1000)
 
         try:
             order = self._exchange.create_order(
@@ -206,7 +207,7 @@ class BitMEX:
         order = None
 
         # 注文に設定する「clOrdID」のID情報を作成・取得
-        order_id = "kheir_" + str(round(time.time()))
+        order_id = str(time.time() * 1000)
 
         try:
             order = self._exchange.create_order(
@@ -237,7 +238,7 @@ class BitMEX:
         order = None
 
         # 注文に設定する「clOrdID」のID情報を作成・取得
-        order_id = "kheir_" + str(round(time.time()))
+        order_id = str(time.time() * 1000)
 
         try:
             order = self._exchange.create_order(
@@ -271,7 +272,7 @@ class BitMEX:
         order = None
 
         # 注文に設定する「clOrdID」のID情報を作成・取得
-        order_id = "kheir_" + str(round(time.time()))
+        order_id = str(time.time() * 1000)
 
         try:
             order = self._exchange.create_order(
@@ -359,6 +360,129 @@ class BitMEX:
             orders = self.__get_error(e)
 
         return orders
+
+    # ==========================================================
+    # ストップ注文
+    #   param:
+    #       side: buy or sell
+    #       size:           サイズ （＋：買い、－：売り）
+    #       trigger_price:  トリガー価格
+    #   return:
+    #       order (注文結果、失敗の場合はNoneが戻される)
+    # ==========================================================
+    def stop_order(self, side, size, trigger_price):
+
+        # 注文に設定する「clOrdID」のID情報を作成・取得
+        order_id = str(time.time() * 1000)
+
+        if side.upper() == 'BUY':
+            _side = 'Buy'
+        else:
+            _side = 'Sell'
+
+        order = None
+
+        try:
+            order = self._exchange.privatePostOrder(
+                dict({
+                        "symbol": BitMEX.INFO_SYMBOL,
+                        "side": _side,
+                        "orderQty": size,
+                        "stopPx": trigger_price,
+                        "ordType": "Stop",
+                        "execInst": "ReduceOnly",
+                        "clOrdID": "{}_stop_market".format(order_id),
+                    })
+            )
+            self._logger.debug("■ stop market order={}".format(order))
+        except Exception as e:
+            self._logger.error("■ stop market: exception={}".format(e))
+            order = self.__get_error(e)
+
+        return order
+
+    # ==========================================================
+    # ストップ指値注文
+    #   param:
+    #       side: buy or sell
+    #       size:           サイズ （＋：買い、－：売り）
+    #       trigger_price:  トリガー価格
+    #       price:          価格
+    #   return:
+    #       order (注文結果、失敗の場合はNoneが戻される)
+    # ==========================================================
+    def stop_limit_order(self, side, size, trigger_price, price):
+
+        # 注文に設定する「clOrdID」のID情報を作成・取得
+        order_id = str(time.time() * 1000)
+
+        if side.upper() == 'BUY':
+            _side = 'Buy'
+        else:
+            _side = 'Sell'
+
+        order = None
+
+        try:
+            order = self._exchange.privatePostOrder(
+                dict({
+                        "symbol": BitMEX.INFO_SYMBOL,
+                        "side": _side,
+                        "orderQty": size,
+                        "stopPx": trigger_price,
+                        "price": price,
+                        "ordType": "StopLimit",
+                        "execInst": "ReduceOnly,ParticipateDoNotInitiate",
+                        "clOrdID": "{}_stop_limit".format(order_id),
+                    })
+            )
+            self._logger.debug("■ stop limit order={}".format(order))
+        except Exception as e:
+            self._logger.error("■ stop limit: exception={}".format(e))
+            order = self.__get_error(e)
+
+        return order
+
+    # ==========================================================
+    # トレーリングストップ注文
+    #   param:
+    #       side: buy or sell
+    #       size:           サイズ （＋：買い、－：売り）
+    #       price_offset:   オフセット価格
+    #   return:
+    #       order (注文結果、失敗の場合はNoneが戻される)
+    # ==========================================================
+    def trailing_stop_order(self, side, size, price_offset):
+
+        # 注文に設定する「clOrdID」のID情報を作成・取得
+        order_id = str(time.time() * 1000)
+
+        if side.upper() == 'BUY':
+            _side = 'Buy'
+        else:
+            _side = 'Sell'
+
+        order = None
+
+        try:
+            order = self._exchange.privatePostOrder(
+                dict({
+                        "symbol": BitMEX.INFO_SYMBOL,
+                        "side": _side,
+                        "orderQty": size,
+                        "pegOffsetValue": price_offset,
+                        "pegPriceType": "TrailingStopPeg",
+                        "ordType": "Stop",
+                        "execInst": "ReduceOnly",
+                        "clOrdID": "{}_trailing_stop".format(order_id),
+                    })
+            )
+            self._logger.debug("■ trailing stop order={}".format(order))
+        except Exception as e:
+            self._logger.error("■ trailing stop: exception={}".format(e))
+            order = self.__get_error(e)
+
+        return order
 
     # ==========================================================
     # bulk order 処理
