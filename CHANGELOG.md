@@ -57,3 +57,7 @@
    exchange.ccxt.BitMEX   
    exchange.websocket.BitMEXWebsocket   
    に追加。
+
+### v1.0.12
+
+- positionが長期間存在しない場合にwebsocketのposition:partialが空配列で戻される件を対応

@@ -69,6 +69,101 @@ class BitMEXWebsocket:
     CANDLE_RANGE = 5
     MAX_CANDLE_LEN = int(3600 / CANDLE_RANGE)  # 1h分
 
+    # 長期間ポジションが無いと、positionのPartialでNULLデータが取得される。
+    INIT_POSITION = {
+        'account': 1,
+        'avgCostPrice': None,
+        'avgEntryPrice': None,
+        'bankruptPrice': None,
+        'breakEvenPrice': None,
+        'commission': 0.00075,
+        'crossMargin': True,
+        'currency': 'XBt',
+        'currentComm': 0,
+        'currentCost': 0,
+        'currentQty': 0,
+        'currentTimestamp': '2019-01-01T00:00:00.000Z',
+        'deleveragePercentile': None,
+        'execBuyCost': 0,
+        'execBuyQty': 0,
+        'execComm': 0,
+        'execCost': 0,
+        'execQty': 0,
+        'execSellCost': 0,
+        'execSellQty': 0,
+        'foreignNotional': 0,
+        'grossExecCost': 0,
+        'grossOpenCost': 0,
+        'grossOpenPremium': 0,
+        'homeNotional': 0,
+        'indicativeTax': 0,
+        'indicativeTaxRate': 0,
+        'initMargin': 0,
+        'initMarginReq': 0.01,
+        'isOpen': False,
+        'lastPrice': None,
+        'lastValue': 0,
+        'leverage': 100,
+        'liquidationPrice': None,
+        'longBankrupt': 0,
+        'maintMargin': 0,
+        'maintMarginReq': 0.005,
+        'marginCallPrice': None,
+        'markPrice': None,
+        'markValue': 0,
+        'openOrderBuyCost': 0,
+        'openOrderBuyPremium': 0,
+        'openOrderBuyQty': 0,
+        'openOrderSellCost': 0,
+        'openOrderSellPremium': 0,
+        'openOrderSellQty': 0,
+        'openingComm': 0,
+        'openingCost': 0,
+        'openingQty': 0,
+        'openingTimestamp': '2019-01-01T00:00:00.000Z',
+        'posAllowance': 0,
+        'posComm': 0,
+        'posCost': 0,
+        'posCost2': 0,
+        'posCross': 0,
+        'posInit': 0,
+        'posLoss': 0,
+        'posMaint': 0,
+        'posMargin': 0,
+        'posState': '',
+        'prevClosePrice': 0,
+        'prevRealisedPnl': 0,
+        'prevUnrealisedPnl': 0,
+        'quoteCurrency': 'USD',
+        'realisedCost': 0,
+        'realisedGrossPnl': 0,
+        'realisedPnl': 0,
+        'realisedTax': 0,
+        'rebalancedPnl': 0,
+        'riskLimit': 10000000000,
+        'riskValue': 0,
+        'sessionMargin': 0,
+        'shortBankrupt': 0,
+        'simpleCost': None,
+        'simplePnl': None,
+        'simplePnlPcnt': None,
+        'simpleQty': None,
+        'simpleValue': None,
+        'symbol': 'XBTUSD',
+        'targetExcessMargin': 0,
+        'taxBase': 0,
+        'taxableMargin': 0,
+        'timestamp': '2019-01-01T00:00:00.000Z',
+        'underlying': 'XBT',
+        'unrealisedCost': 0,
+        'unrealisedGrossPnl': 0,
+        'unrealisedPnl': 0,
+        'unrealisedPnlPcnt': 0,
+        'unrealisedRoePcnt': 0,
+        'unrealisedTax': 0,
+        'varMargin': 0
+    }
+
     # ===========================================================
     # コンストラクタ
     # ===========================================================
@@ -1061,7 +1156,11 @@ class BitMEXWebsocket:
                             self._order.replace(orders)
                         elif table in ["instrument", "margin", "position"]:
                             # 辞書型 {} で登録(partial)・更新(update)
-                            self.data[table].update(message["data"][0])
+                            if table == "position" and len(message["data"]) == 0:
+                                self.logger.warning("position partial data is nothing. force DEFAULT")
+                                self.data[table].update(BitMEXWebsocket.INIT_POSITION)
+                            else:
+                                self.data[table].update(message["data"][0])
                         elif table in ["execution", "trade", "quote"]:
                             # 配列 [] で登録(partial)・挿入(insert)
                             self.data[table] = message["data"]
