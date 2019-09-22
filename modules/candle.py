@@ -188,95 +188,7 @@ class Candle:
         # -----------------------------------------------
         # Pandasのデータフレームに
         # -----------------------------------------------
-        df = pd.DataFrame(
-            candle, columns=["timestamp", "open", "high", "low", "close", "volume"]
-        )
-        # -----------------------------------------------
-        # 日時データをDataFrameのインデックスにする
-        # -----------------------------------------------
-        df["timestamp"] = pd.to_datetime(
-            df["timestamp"], unit="ms", utc=True, infer_datetime_format=True
-        )  # UNIX時間(ミリ秒)を変換, UTC=TrueでタイムゾーンがUTCに設定される, infer_datetime_format=Trueは高速化に寄与するとのこと。
-        df = df.set_index("timestamp")
-
-        return df
-
-    # ==========================================================
-    # ローソク足の足幅変換
-    #   params:
-    #       ohlcv: DataFrame (pandas)
-    #       resolution: 刻み幅(1m, 3m, 5m, 15m, 30m, 1h, 2h, 3h, 4h, 6h, 12h, 1d, 3d, 1w, 2w, 1M)
-    # ==========================================================
-    def __change_candleDF(self, ohlcv, resolution="1m"):
-        # 参考にしたサイト https://docs.pyq.jp/python/pydata/pandas/resample.html
-        """
-        -------+------+------
-        引数    単位    区切り
-        -------+------+------
-        AS	    年      年初
-        A	    年	    年末
-        MS	    月	    月初
-        M	    月	    月末
-        W	    週	    日曜
-        D	    日	    0時
-        H	    時	    0分
-        T,min	分	    0秒
-        S	    秒
-        L,ms    ミリ秒
-        U,us    マイクロ秒
-        N,ns    ナノ秒
-        """
-
-        """
-        -------+------+------
-        関数    説明
-        -------+------+------
-        min	    最小
-        max	    最大
-        sum	    合計
-        mean	平均
-        first	最初の値
-        last    最後の値
-        interpolate	補間        
-        """
-
-        period = {
-            "1m": "1T",
-            "3m": "3T",
-            "5m": "5T",
-            "15m": "15T",
-            "30m": "30T",
-            "1h": "1H",
-            "2h": "2H",
-            "3h": "3H",
-            "4h": "4H",
-            "6h": "6H",
-            "12h": "12H",
-            "1d": "1D",
-            "3d": "3D",
-            "1w": "1W",
-            "2w": "2W",
-            "1M": "1M",
-        }
-
-        if resolution not in period.keys():
-            return None
-
-        # 他の分刻みに直す
-        df = (
-            ohlcv[["open", "high", "low", "close", "volume"]]
-            .resample(period[resolution], label="left", closed="left")
-            .agg(
-                {
-                    "open": "first",
-                    "high": "max",
-                    "low": "min",
-                    "close": "last",
-                    "volume": "sum",
-                }
-            )
-        )
-        # ohlcを再度ohlcに集計するにはaggメソッド
+        df = self._bitmex.to_candleDF(candle)
 
         return df
 
@@ -289,15 +201,15 @@ class Candle:
             if resolution in ["1m", "5m", "1h", "1d"]:
                 self._candle[resolution] = self.__fetch_candle(resolution)
             elif resolution in ["3m"]:
-                self._candle[resolution] = self.__change_candleDF(
+                self._candle[resolution] = self._bitmex.change_candleDF(
                     self._candle["1m"], resolution
                 )
             elif resolution in ["10m", "15m", "30m"]:
-                self._candle[resolution] = self.__change_candleDF(
+                self._candle[resolution] = self._bitmex.change_candleDF(
                     self._candle["5m"], resolution
                 )
             elif resolution in ["2h", "3h", "4h", "6h", "12h"]:
-                self._candle[resolution] = self.__change_candleDF(
+                self._candle[resolution] = self._bitmex.change_candleDF(
                     self._candle["1h"], resolution
                 )
             time.sleep(0.1)

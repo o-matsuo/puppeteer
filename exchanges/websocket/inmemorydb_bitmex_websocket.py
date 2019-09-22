@@ -26,6 +26,8 @@ import urllib.parse
 # for instrument
 import math
 
+import pandas as pd
+
 # for signature
 import hmac, hashlib
 
@@ -489,6 +491,132 @@ class BitMEXWebsocket:
     # ==========================================================
     def find_orders(self, open_orders, clOrdID):
         return [order for order in open_orders if 0 < order["clOrdID"].find(clOrdID)]
+
+    # ==========================================================
+    # candleデータフレーム作成
+    #   param:
+    #       candle: 5秒足配列　[['timestamp','open','high','low','close','volume','buy','sell'], [], [], ,,,,]
+    #   return:
+    #       df: pandas.DataFrame(columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'buy', 'sell'])
+    # ==========================================================
+    def to_candleDF(self, candle):
+        # ------------------------------------------------------
+        # DataFrame作成
+        # ------------------------------------------------------
+        # df = pd.DataFrame(ws.candle()[-ws.MAX_CANDLE_LEN:])
+        # df = df.loc[:, ['timestamp','open','high','low','close','volume','buy','sell']]
+        # ↑ 上記の記述は冗長なので書き直した
+        df = pd.DataFrame(
+            candle,
+            columns=[
+                "timestamp",
+                "open",
+                "high",
+                "low",
+                "close",
+                "volume",
+                "buy",
+                "sell",
+            ],
+        )
+        # ------------------------------------------------------
+        # 日時データをDataFrameのインデックスにする
+        #   candleのtimestampデータがUNIXTIME(秒)なので、unit='s'を指定する。（ミリ秒なら 'ms'を指定する）
+        # ------------------------------------------------------
+        df["timestamp"] = pd.to_datetime(
+            df["timestamp"], unit="s", infer_datetime_format=True
+        )  # infer_datetime_format=Trueは高速化に寄与するとのこと。
+        df = df.set_index("timestamp")
+        # ------------------------------------------------------
+        # timezone を変更する。
+        #   tz_convert('Asia/Tokyo')    local-PC:OK,    AWS Cloud9: NG
+        #   tz_convert(None)            AWS Cloud9: OK
+        #   tz_localize(None)           AWS Cloud9: OK
+        # 考慮の末、tz_localize(None)を採用した。
+        # ------------------------------------------------------
+        # df.index = df.index.tz_convert('Asia/Tokyo')   # local-PC: OK, AWS Cloud9: NG
+        # df.index = df.index.tz_convert(None)           # AWS Cloud9: OK
+        df.index = df.index.tz_localize(None)  # AWS Cloud9: OK
+        # ------------------------------------------------------
+        # 一つでも欠損値(NaN)がある行は削除する
+        # ------------------------------------------------------
+        count_all = len(df)
+        df_notnan = df.dropna(how="any")
+        count_notNaN = len(df_notnan)
+        # ------------------------------------------------------
+        if count_all != count_notNaN:
+            self.logger.warning(
+                "candle data include NaN, all={}, NaN={}".format(
+                    count_all, count_all - count_notNaN
+                )
+            )
+            return df_notnan
+        else:
+            return df
+
+    # ==========================================================
+    # ローソク足の足幅変換
+    #   params:
+    #       ohlcv: pandas.DataFrame(columns=['timestamp', 'open', 'high', 'low', 'close', 'volume', 'buy', 'sell'])
+    #       resolution: 刻み幅(10s, 15s, 30s)
+    # ==========================================================
+    def change_candleDF(self, ohlcv, resolution="10s"):
+        # 参考にしたサイト https://docs.pyq.jp/python/pydata/pandas/resample.html
+        """
+        -------+------+------
+        引数    単位    区切り
+        -------+------+------
+        AS	    年      年初
+        A	    年	    年末
+        MS	    月	    月初
+        M	    月	    月末
+        W	    週	    日曜
+        D	    日	    0時
+        H	    時	    0分
+        T,min	分	    0秒
+        S	    秒
+        L,ms    ミリ秒
+        U,us    マイクロ秒
+        N,ns    ナノ秒
+        """
+
+        """
+        -------+------+------
+        関数    説明
+        -------+------+------
+        min	    最小
+        max	    最大
+        sum	    合計
+        mean	平均
+        first	最初の値
+        last    最後の値
+        interpolate	補間        
+        """
+
+        period = {"10s": "10S", "15s": "15S", "30s": "30S"}
+
+        if resolution not in period.keys():
+            return None
+
+        # 他の秒刻みに直す
+        df = (
+            ohlcv[["open", "high", "low", "close", "volume", "buy", "sell"]]
+            .resample(period[resolution], label="left", closed="left")
+            .agg(
+                {
+                    "open": "first",
+                    "high": "max",
+                    "low": "min",
+                    "close": "last",
+                    "volume": "sum",
+                    "buy": "sum",
+                    "sell": "sum",
+                }
+            )
+        )
+        # ohlcを再度ohlcに集計するにはaggメソッド
+
+        return df
 
     # ###########################################################
     # local Methods
