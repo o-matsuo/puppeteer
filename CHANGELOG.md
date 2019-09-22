@@ -51,3 +51,9 @@
 
 - stop注文メソッドを追加
 
+### v1.0.11
+
+- to_candleDF, change_candleDFメソッドを   
+   exchange.ccxt.BitMEX   
+   exchange.websocket.BitMEXWebsocket   
+   に追加。
