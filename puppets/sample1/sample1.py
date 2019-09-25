@@ -122,8 +122,22 @@ class Puppet:
         # ローソク足
         # ------------------------------------------------------
         candle = self._ws.candle(1)
-        df = pd.DataFrame(candle, columns=["timestamp", "open", "high", "low", "close", "volume", "buy", "sell"])
-        df["timestamp"] = pd.to_datetime(df["timestamp"], unit="s", infer_datetime_format=True)
+        df = pd.DataFrame(
+            candle,
+            columns=[
+                "timestamp",
+                "open",
+                "high",
+                "low",
+                "close",
+                "volume",
+                "buy",
+                "sell",
+            ],
+        )
+        df["timestamp"] = pd.to_datetime(
+            df["timestamp"], unit="s", infer_datetime_format=True
+        )
         df = df.set_index("timestamp")
         df.index = df.index.tz_localize(None)
         self._logger.info((df.tail(10)))

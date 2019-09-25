@@ -244,76 +244,98 @@ if __name__ == "__main__":
             # ----------------------------------
             Puppeteer._ts = datetime.now(Puppeteer._tz).timestamp()
             # ----------------------------------
+            # 引数の初期化
+            # ----------------------------------
+            ticker, orderbook, position, balance, candle = None, None, None, None, None
+            # ----------------------------------
             # 処理開始
             # ----------------------------------
             start = time.time()
-            # ----------------------------------
-            # ローソク足情報取得
-            #  ローカル関数を使用
-            # ----------------------------------
-            candle = (
-                Puppeteer._bitmex.ohlcv(
-                    symbol=Puppeteer._config["SYMBOL"],  # シンボル
-                    timeframe=Puppeteer._config["CANDLE"][
-                        "TIMEFRAME"
-                    ],  # timeframe= 1m 5m 1h 1d
-                    since=Puppeteer._config["CANDLE"][
-                        "SINCE"
-                    ],  # データ取得開始時刻(Unix Timeミリ秒)
-                    limit=Puppeteer._config["CANDLE"]["LIMIT"],  # 取得件数(未指定:100、MAX:500)
-                    params={
-                        "reverse": Puppeteer._config["CANDLE"][
-                            "REVERSE"
-                        ],  # True(New->Old)、False(Old->New)　未指定時はFlase (注意：sineceを指定せずに、このフラグをTrueにすると最古のデータは2016年頃のデータが取れる)
-                        "partial": Puppeteer._config["CANDLE"][
-                            "PARTIAL"
-                        ],  # True(最新の未確定足を含む)、False(含まない)　未指定はTrue　（注意：まだバグっているのか、Falseでも最新足が含まれる）
-                    },
+            try:
+                # ------------------------------
+                # ローソク足情報取得
+                #  ローカル関数を使用
+                # ------------------------------
+                candle = (
+                    Puppeteer._bitmex.ohlcv(
+                        symbol=Puppeteer._config["SYMBOL"],  # シンボル
+                        timeframe=Puppeteer._config["CANDLE"][
+                            "TIMEFRAME"
+                        ],  # timeframe= 1m 5m 1h 1d
+                        since=Puppeteer._config["CANDLE"][
+                            "SINCE"
+                        ],  # データ取得開始時刻(Unix Timeミリ秒)
+                        limit=Puppeteer._config["CANDLE"][
+                            "LIMIT"
+                        ],  # 取得件数(未指定:100、MAX:500)
+                        params={
+                            "reverse": Puppeteer._config["CANDLE"][
+                                "REVERSE"
+                            ],  # True(New->Old)、False(Old->New)　未指定時はFlase (注意：sineceを指定せずに、このフラグをTrueにすると最古のデータは2016年頃のデータが取れる)
+                            "partial": Puppeteer._config["CANDLE"][
+                                "PARTIAL"
+                            ],  # True(最新の未確定足を含む)、False(含まない)　未指定はTrue　（注意：まだバグっているのか、Falseでも最新足が含まれる）
+                        },
+                    )
+                    if Puppeteer._config["USE"]["CANDLE"] == True
+                    else None
                 )
-                if Puppeteer._config["USE"]["CANDLE"] == True
-                else None
-            )
-            # ----------------------------------
-            # 資産状況の取得
-            # ----------------------------------
-            balance = (
-                Puppeteer._bitmex.balance()
-                if Puppeteer._config["USE"]["BALANCE"] == True
-                else None
-            )
-            # print('BTC={}'.format(balance['BTC']['total']))
-            # ----------------------------------
-            # ポジション取得
-            # ----------------------------------
-            position = (
-                Puppeteer._bitmex.position()
-                if Puppeteer._config["USE"]["POSITION"] == True
-                else None
-            )
-            # print('position={}, avgPrice={}'.format(position[0]['currentQty'], position[0]['avgEntryPrice']))
-            # ----------------------------------
-            # ticker取得
-            # ----------------------------------
-            ticker = (
-                Puppeteer._bitmex.ticker(symbol=Puppeteer._config["SYMBOL"])  # シンボル
-                if Puppeteer._config["USE"]["TICKER"] == True
-                else None
-            )
-            # print('last={}'.format(ticker['last']))
-            # ----------------------------------
-            # 板情報取得
-            # ----------------------------------
-            orderbook = (
-                Puppeteer._bitmex.orderbook(
-                    symbol=Puppeteer._config["SYMBOL"],  # シンボル
-                    limit=Puppeteer._config["ORDERBOOK"][
-                        "LIMIT"
-                    ],  # 取得件数(未指定:100、MAX:500)
+                # ------------------------------
+                # 資産状況の取得
+                # ------------------------------
+                balance = (
+                    Puppeteer._bitmex.balance()
+                    if Puppeteer._config["USE"]["BALANCE"] == True
+                    else None
                 )
-                if Puppeteer._config["USE"]["ORDERBOOK"] == True
-                else None
-            )
-            # print('bid={}, ask={}'.format(orderbook['bids'][0][0], orderbook['asks'][0][0]))
+                # print('BTC={}'.format(balance['BTC']['total']))
+                # ------------------------------
+                # ポジション取得
+                # ------------------------------
+                position = (
+                    Puppeteer._bitmex.position()
+                    if Puppeteer._config["USE"]["POSITION"] == True
+                    else None
+                )
+                # print('position={}, avgPrice={}'.format(position[0]['currentQty'], position[0]['avgEntryPrice']))
+                # ------------------------------
+                # ticker取得
+                # ------------------------------
+                ticker = (
+                    Puppeteer._bitmex.ticker(symbol=Puppeteer._config["SYMBOL"])  # シンボル
+                    if Puppeteer._config["USE"]["TICKER"] == True
+                    else None
+                )
+                # print('last={}'.format(ticker['last']))
+                # ------------------------------
+                # 板情報取得
+                # ------------------------------
+                orderbook = (
+                    Puppeteer._bitmex.orderbook(
+                        symbol=Puppeteer._config["SYMBOL"],  # シンボル
+                        limit=Puppeteer._config["ORDERBOOK"][
+                            "LIMIT"
+                        ],  # 取得件数(未指定:100、MAX:500)
+                    )
+                    if Puppeteer._config["USE"]["ORDERBOOK"] == True
+                    else None
+                )
+                # print('bid={}, ask={}'.format(orderbook['bids'][0][0], orderbook['asks'][0][0]))
+            except Exception as e:
+                # bitmexオブジェクトの実行で例外が発生したが、再起動はしないで処理を継続する
+                Puppeteer._logger.error(
+                    "Puppeteer.run() bitmex Exception: {}".format(e)
+                )
+                # 処理時間がINTERVALよりも長かったらワーニングを出す
+                elapsed_time = time.time() - start
+                if elapsed_time > Puppeteer._config["INTERVAL"]:
+                    Puppeteer._logger.warning(
+                        "elapsed_time={} over interval time={}".format(
+                            elapsed_time, Puppeteer._config["INTERVAL"]
+                        )
+                    )
+                # 処理をすぐに継続する
+                continue
             # ----------------------------------
             # websocketを使っていた場合、force_exitフラグのチェック
             # ----------------------------------

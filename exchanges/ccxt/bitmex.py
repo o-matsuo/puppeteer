@@ -20,7 +20,7 @@ import pandas as pd
 class BitMEX:
 
     SYMBOL = "BTC/USD"
-    INFO_SYMBOL = 'XBTUSD'
+    INFO_SYMBOL = "XBTUSD"
     __NAME = "bitmex"  # 取引所名
 
     # ==================================
@@ -376,16 +376,17 @@ class BitMEX:
         # 注文に設定する「clOrdID」のID情報を作成・取得
         order_id = str(time.time() * 1000)
 
-        if side.upper() == 'BUY':
-            _side = 'Buy'
+        if side.upper() == "BUY":
+            _side = "Buy"
         else:
-            _side = 'Sell'
+            _side = "Sell"
 
         order = None
 
         try:
             order = self._exchange.privatePostOrder(
-                dict({
+                dict(
+                    {
                         "symbol": BitMEX.INFO_SYMBOL,
                         "side": _side,
                         "orderQty": size,
@@ -393,7 +394,8 @@ class BitMEX:
                         "ordType": "Stop",
                         "execInst": "ReduceOnly",
                         "clOrdID": "{}_stop_market".format(order_id),
-                    })
+                    }
+                )
             )
             self._logger.debug("■ stop market order={}".format(order))
         except Exception as e:
@@ -417,16 +419,17 @@ class BitMEX:
         # 注文に設定する「clOrdID」のID情報を作成・取得
         order_id = str(time.time() * 1000)
 
-        if side.upper() == 'BUY':
-            _side = 'Buy'
+        if side.upper() == "BUY":
+            _side = "Buy"
         else:
-            _side = 'Sell'
+            _side = "Sell"
 
         order = None
 
         try:
             order = self._exchange.privatePostOrder(
-                dict({
+                dict(
+                    {
                         "symbol": BitMEX.INFO_SYMBOL,
                         "side": _side,
                         "orderQty": size,
@@ -435,7 +438,8 @@ class BitMEX:
                         "ordType": "StopLimit",
                         "execInst": "ReduceOnly,ParticipateDoNotInitiate",
                         "clOrdID": "{}_stop_limit".format(order_id),
-                    })
+                    }
+                )
             )
             self._logger.debug("■ stop limit order={}".format(order))
         except Exception as e:
@@ -458,16 +462,17 @@ class BitMEX:
         # 注文に設定する「clOrdID」のID情報を作成・取得
         order_id = str(time.time() * 1000)
 
-        if side.upper() == 'BUY':
-            _side = 'Buy'
+        if side.upper() == "BUY":
+            _side = "Buy"
         else:
-            _side = 'Sell'
+            _side = "Sell"
 
         order = None
 
         try:
             order = self._exchange.privatePostOrder(
-                dict({
+                dict(
+                    {
                         "symbol": BitMEX.INFO_SYMBOL,
                         "side": _side,
                         "orderQty": size,
@@ -476,7 +481,8 @@ class BitMEX:
                         "ordType": "Stop",
                         "execInst": "ReduceOnly",
                         "clOrdID": "{}_trailing_stop".format(order_id),
-                    })
+                    }
+                )
             )
             self._logger.debug("■ trailing stop order={}".format(order))
         except Exception as e:
@@ -714,4 +720,3 @@ class BitMEX:
         # ohlcを再度ohlcに集計するにはaggメソッド
 
         return df
-
