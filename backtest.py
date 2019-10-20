@@ -26,7 +26,7 @@ from exchanges.ccxt.bitmex import BitMEX
 from exchanges.websocket.inmemorydb_bitmex_websocket import BitMEXWebsocket
 
 # ==========================================
-# Puppeteer モジュール
+# BackTest モジュール
 # ==========================================
 from modules.discord import Discord  # Discordクラス
 from modules.balance import Balance  # Balanceクラス
@@ -42,12 +42,12 @@ args = sys.argv
 # ==========================================
 # 傀儡師
 # ==========================================
-class Puppeteer:
+class BackTest:
 
     # ======================================
     # 初期化
     #   param:
-    #       args: Puppeteer起動時の引数
+    #       args: BackTest起動時の引数
     # ======================================
     def __init__(self, args):
         # ----------------------------------
@@ -61,7 +61,7 @@ class Puppeteer:
         # logファイル名を抜き出す
         base, ext = splitext(basename(args[1]))  # 引数チェックをする前に引数を使っているけど、Loggerを先に作りたい。
         # loggerオブジェクトの宣言
-        logger = getLogger("puppeteer")
+        logger = getLogger("backtest")
         # loggerのログレベル設定(ハンドラに渡すエラーメッセージのレベル)
         logger.setLevel(logging.INFO)  # ※ここはConfigで設定可能にする
         # Formatterの生成
@@ -215,34 +215,34 @@ if __name__ == "__main__":
     # 起動
     # ======================================
     def start():
-        puppeteer = Puppeteer(args=args)
+        backtest = BackTest(args=args)
         # 資産状況通知
-        balance = Balance(puppeteer) if puppeteer._config["USE_SEND_BALANCE"] else None
-        heartbeat = Heartbeat(puppeteer) if puppeteer._config["USE_WEBSOCKET"] else None
+        balance = Balance(backtest) if backtest._config["USE_SEND_BALANCE"] else None
+        heartbeat = Heartbeat(backtest) if backtest._config["USE_WEBSOCKET"] else None
         while True:
             try:
-                run(Puppeteer=puppeteer)
+                run(BackTest=backtest)
             except KeyboardInterrupt:
-                puppeteer._logger.info("[傀儡師] Ctrl-C検出: 処理を終了します")
-                puppeteer._discord.send("[傀儡師] Ctrl-C検出: 処理を終了します")
+                backtest._logger.info("[傀儡師] Ctrl-C検出: 処理を終了します")
+                backtest._discord.send("[傀儡師] Ctrl-C検出: 処理を終了します")
                 exit()
             except Exception as e:
-                puppeteer._logger.error("[傀儡師] 例外発生[{}]: 処理を再起動します".format(e))
-                puppeteer._discord.send("[傀儡師] 例外発生[{}]: 処理を再起動します".format(e))
+                backtest._logger.error("[傀儡師] 例外発生[{}]: 処理を再起動します".format(e))
+                backtest._discord.send("[傀儡師] 例外発生[{}]: 処理を再起動します".format(e))
                 # websocket再接続
-                if puppeteer._config["USE_WEBSOCKET"]:
-                    puppeteer._ws.reconnect()
+                if backtest._config["USE_WEBSOCKET"]:
+                    backtest._ws.reconnect()
                 time.sleep(5)
 
     # ======================================
     # メインループ
     # ======================================
-    def run(Puppeteer):
+    def run(BackTest):
         while True:
             # ----------------------------------
             # timestamp更新
             # ----------------------------------
-            Puppeteer._ts = datetime.now(Puppeteer._tz).timestamp()
+            BackTest._ts = datetime.now(BackTest._tz).timestamp()
             # ----------------------------------
             # 引数の初期化
             # ----------------------------------
@@ -257,35 +257,35 @@ if __name__ == "__main__":
                 #  ローカル関数を使用
                 # ------------------------------
                 candle = (
-                    Puppeteer._bitmex.ohlcv(
-                        symbol=Puppeteer._config["SYMBOL"],  # シンボル
-                        timeframe=Puppeteer._config["CANDLE"][
+                    BackTest._bitmex.ohlcv(
+                        symbol=BackTest._config["SYMBOL"],  # シンボル
+                        timeframe=BackTest._config["CANDLE"][
                             "TIMEFRAME"
                         ],  # timeframe= 1m 5m 1h 1d
-                        since=Puppeteer._config["CANDLE"][
+                        since=BackTest._config["CANDLE"][
                             "SINCE"
                         ],  # データ取得開始時刻(Unix Timeミリ秒)
-                        limit=Puppeteer._config["CANDLE"][
+                        limit=BackTest._config["CANDLE"][
                             "LIMIT"
                         ],  # 取得件数(未指定:100、MAX:500)
                         params={
-                            "reverse": Puppeteer._config["CANDLE"][
+                            "reverse": BackTest._config["CANDLE"][
                                 "REVERSE"
                             ],  # True(New->Old)、False(Old->New)　未指定時はFlase (注意：sineceを指定せずに、このフラグをTrueにすると最古のデータは2016年頃のデータが取れる)
-                            "partial": Puppeteer._config["CANDLE"][
+                            "partial": BackTest._config["CANDLE"][
                                 "PARTIAL"
                             ],  # True(最新の未確定足を含む)、False(含まない)　未指定はTrue　（注意：まだバグっているのか、Falseでも最新足が含まれる）
                         },
                     )
-                    if Puppeteer._config["USE"]["CANDLE"] == True
+                    if BackTest._config["USE"]["CANDLE"] == True
                     else None
                 )
                 # ------------------------------
                 # 資産状況の取得
                 # ------------------------------
                 balance = (
-                    Puppeteer._bitmex.balance()
-                    if Puppeteer._config["USE"]["BALANCE"] == True
+                    BackTest._bitmex.balance()
+                    if BackTest._config["USE"]["BALANCE"] == True
                     else None
                 )
                 # print('BTC={}'.format(balance['BTC']['total']))
@@ -293,8 +293,8 @@ if __name__ == "__main__":
                 # ポジション取得
                 # ------------------------------
                 position = (
-                    Puppeteer._bitmex.position()
-                    if Puppeteer._config["USE"]["POSITION"] == True
+                    BackTest._bitmex.position()
+                    if BackTest._config["USE"]["POSITION"] == True
                     else None
                 )
                 # print('position={}, avgPrice={}'.format(position[0]['currentQty'], position[0]['avgEntryPrice']))
@@ -302,8 +302,8 @@ if __name__ == "__main__":
                 # ticker取得
                 # ------------------------------
                 ticker = (
-                    Puppeteer._bitmex.ticker(symbol=Puppeteer._config["SYMBOL"])  # シンボル
-                    if Puppeteer._config["USE"]["TICKER"] == True
+                    BackTest._bitmex.ticker(symbol=BackTest._config["SYMBOL"])  # シンボル
+                    if BackTest._config["USE"]["TICKER"] == True
                     else None
                 )
                 # print('last={}'.format(ticker['last']))
@@ -311,27 +311,27 @@ if __name__ == "__main__":
                 # 板情報取得
                 # ------------------------------
                 orderbook = (
-                    Puppeteer._bitmex.orderbook(
-                        symbol=Puppeteer._config["SYMBOL"],  # シンボル
-                        limit=Puppeteer._config["ORDERBOOK"][
+                    BackTest._bitmex.orderbook(
+                        symbol=BackTest._config["SYMBOL"],  # シンボル
+                        limit=BackTest._config["ORDERBOOK"][
                             "LIMIT"
                         ],  # 取得件数(未指定:100、MAX:500)
                     )
-                    if Puppeteer._config["USE"]["ORDERBOOK"] == True
+                    if BackTest._config["USE"]["ORDERBOOK"] == True
                     else None
                 )
                 # print('bid={}, ask={}'.format(orderbook['bids'][0][0], orderbook['asks'][0][0]))
             except Exception as e:
                 # bitmexオブジェクトの実行で例外が発生したが、再起動はしないで処理を継続する
-                Puppeteer._logger.error(
-                    "Puppeteer.run() bitmex Exception: {}".format(e)
+                BackTest._logger.error(
+                    "BackTest.run() bitmex Exception: {}".format(e)
                 )
                 # 処理時間がINTERVALよりも長かったらワーニングを出す
                 elapsed_time = time.time() - start
-                if elapsed_time > Puppeteer._config["INTERVAL"]:
-                    Puppeteer._logger.warning(
+                if elapsed_time > BackTest._config["INTERVAL"]:
+                    BackTest._logger.warning(
                         "elapsed_time={} over interval time={}".format(
-                            elapsed_time, Puppeteer._config["INTERVAL"]
+                            elapsed_time, BackTest._config["INTERVAL"]
                         )
                     )
                 # 処理をすぐに継続する
@@ -339,12 +339,12 @@ if __name__ == "__main__":
             # ----------------------------------
             # websocketを使っていた場合、force_exitフラグのチェック
             # ----------------------------------
-            if Puppeteer._config["USE_WEBSOCKET"] and Puppeteer._ws.is_force_exit():
+            if BackTest._config["USE_WEBSOCKET"] and BackTest._ws.is_force_exit():
                 raise Exception("websocket force exit")
             # ----------------------------------
             # ストラテジ呼び出し
             # ----------------------------------
-            Puppeteer._Puppet.run(ticker, orderbook, position, balance, candle)
+            BackTest._Puppet.run(ticker, orderbook, position, balance, candle)
             # ----------------------------------
             # 処理終了
             # ----------------------------------
@@ -352,12 +352,12 @@ if __name__ == "__main__":
             # ----------------------------------
             # 上記までで消費された秒数だけ差し引いてスリープする
             # ----------------------------------
-            interval = Puppeteer._config["INTERVAL"]
+            interval = BackTest._config["INTERVAL"]
             if interval - elapsed_time > 0:
                 time.sleep(interval - elapsed_time)
             else:
                 time.sleep(1)  # RUN時間が想定よりも長くかかってしまったため、すぐに次の処理に繊維する。
-                Puppeteer._logger.warning(
+                BackTest._logger.warning(
                     "elapsed_time={} over interval time={}".format(
                         elapsed_time, interval
                     )
