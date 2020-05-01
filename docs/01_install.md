@@ -42,7 +42,7 @@ git clone https://gitlab.com/o-matsuo/puppeteer.git
 [ccxt](https://github.com/ccxt/ccxt)は多くの仮想通貨自動取引botで利用されている有名なモジュールです。
 
 ```shell script
-pip install -r requirements.txt
+sudo pip install -r requirements.txt
 ```
 
 または
