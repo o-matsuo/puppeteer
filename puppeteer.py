@@ -225,6 +225,12 @@ if __name__ == "__main__":
             except KeyboardInterrupt:
                 puppeteer._logger.info("[傀儡師] Ctrl-C検出: 処理を終了します")
                 puppeteer._discord.send("[傀儡師] Ctrl-C検出: 処理を終了します")
+                # 注文が存在したらキャンセルする
+                if len(puppeteer._bitmex.open_orders()):
+                    puppeteer._bitmex.cancel_orders()
+                    puppeteer._logger.info("[傀儡師] Ctrl-C検出: 既出注文をキャンセルしました")
+                    puppeteer._discord.send("[傀儡師] Ctrl-C検出: 既出注文をキャンセルしました")
+                    time.sleep(1)
                 exit()
             except Exception as e:
                 puppeteer._logger.error("[傀儡師] 例外発生[{}]: 処理を再起動します".format(e))

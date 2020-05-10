@@ -61,3 +61,7 @@
 ### v1.0.12
 
 - positionが長期間存在しない場合にwebsocketのposition:partialが空配列で戻される件を対応
+
+### v1.0.13
+
+- puppeteer終了時に注文のキャンセル

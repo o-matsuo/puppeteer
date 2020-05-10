@@ -44,13 +44,3 @@ git clone https://gitlab.com/o-matsuo/puppeteer.git
 ```shell script
 sudo pip install -r requirements.txt
 ```
-
-または
-
-```python
-sudo pip install ccxt
-sudo pip install matplotlib
-sudo pip install pandas
-sudo pip install websocket-client==0.47
-```
-
