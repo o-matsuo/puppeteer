@@ -3,6 +3,7 @@ __pycache__/
 .vscode/
 .idea
 *.log
+*-balance.png
 
 # virtualenvを利用する場合
 venv
