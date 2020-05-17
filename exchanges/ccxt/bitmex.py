@@ -515,27 +515,67 @@ class BitMEX:
     # balance
     # ======================================
     def balance(self):
-        return self._exchange.fetch_balance()
+
+        _balance = None
+        try:
+            _balance = self._exchange.fetch_balance()
+            self._logger.debug("■ balance={}".format(_balance))
+        except Exception as e:
+            self._logger.error("■ balance: exception={}".format(e))
+            _balance = self.__get_error(e)
+            _balance = None # Noneを戻す
+
+        return _balance
 
     # ======================================
     # position
     # ======================================
     def position(self):
-        return self._exchange.private_get_position()
+
+        _position = None
+        try:
+            _position = self._exchange.private_get_position()
+            self._logger.debug("■ position={}".format(_position))
+        except Exception as e:
+            self._logger.error("■ position: exception={}".format(e))
+            _position = self.__get_error(e)
+            _position = None # Noneを戻す
+
+        return _position
 
     # ======================================
     # ticker
     # ======================================
     def ticker(self, symbol=SYMBOL):
-        return self._exchange.fetch_ticker(symbol=symbol)  # シンボル
+
+        _ticker = None
+        try:
+            _ticker = self._exchange.fetch_ticker(symbol=symbol)  # シンボル
+            self._logger.debug("■ ticker={}".format(_ticker))
+        except Exception as e:
+            self._logger.error("■ ticker: exception={}".format(e))
+            _ticker = self.__get_error(e)
+            _ticker = None # Noneを戻す
+
+        return _ticker
 
     # ======================================
     # 板情報取得
     # ======================================
     def orderbook(self, symbol=SYMBOL, limit=100):
-        return self._exchange.fetch_order_book(
-            symbol=symbol, limit=limit  # シンボル  # 取得件数(未指定:100、MAX:500)
-        )
+
+        _orderbook = None
+        try:
+            _orderbook = self._exchange.fetch_order_book(
+                symbol=symbol, limit=limit  # シンボル  # 取得件数(未指定:100、MAX:500)
+            )
+            self._logger.debug("■ orderbook={}".format(_orderbook))
+        except Exception as e:
+            self._logger.error("■ orderbook: exception={}".format(e))
+            _orderbook = self.__get_error(e)
+            _orderbook = None # Noneを戻す
+
+        return _orderbook
 
     # ======================================
     # ccxtのfetch_ohlcv問題に対応するローカル関数

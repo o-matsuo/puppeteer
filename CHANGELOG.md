@@ -65,3 +65,8 @@
 ### v1.0.13
 
 - puppeteer終了時に注文のキャンセル
+
+### v1.0.14
+
+- BitMEXクラスの balance、position、ticker、orderbook メソッドでTry-Catchを実装   
+   失敗したときには、None を戻す
