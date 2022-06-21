@@ -14,7 +14,7 @@ idna-ssl==1.1.0
 kiwisolver==1.1.0
 matplotlib==3.1.1
 multidict==4.5.2
-numpy==1.16.4
+numpy==1.22.0
 pandas==0.24.2
 pycares==3.0.0
 pycparser==2.19
